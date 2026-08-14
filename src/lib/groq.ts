@@ -15,7 +15,10 @@ export async function generateQuestions(
 ) {
   const groq = getGroq();
   const response = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    // Structured outputs strict (response_format json_schema) HANYA didukung
+    // oleh openai/gpt-oss-120b & openai/gpt-oss-20b di Groq. Model llama &
+    // groq/compound tidak mendukung json_schema.
+    model: "openai/gpt-oss-120b",
     messages: [
       {
         role: "system",
