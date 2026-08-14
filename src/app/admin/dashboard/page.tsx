@@ -12,19 +12,24 @@ import {
   setDoc,
   Timestamp,
 } from "firebase/firestore";
-import { signOut } from "firebase/auth";
-import { db, auth } from "@/lib/firebase/client";
+import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 import { generateSessionCode } from "@/lib/utils";
 import type { Session } from "@/lib/types";
+
+interface SessionWithCount extends Session {
+  attemptCount: number;
+}
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<SessionWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -43,10 +48,33 @@ export default function DashboardPage() {
           orderBy("createdAt", "desc")
         );
         const snap = await getDocs(q);
-        const data = snap.docs.map((d) => ({ ...d.data(), code: d.id } as Session));
-        setSessions(data);
-      } catch (error) {
-        console.error("Gagal memuat sesi:", error);
+        const base = snap.docs.map(
+          (d) => ({ ...d.data(), code: d.id } as Session)
+        );
+
+        // Hitung jumlah attempt per sesi
+        const withCounts = await Promise.all(
+          base.map(async (s) => {
+            let attemptCount = 0;
+            try {
+              const aSnap = await getDocs(
+                query(
+                  collection(db, "attempts"),
+                  where("sessionCode", "==", s.code)
+                )
+              );
+              attemptCount = aSnap.size;
+            } catch {
+              attemptCount = 0;
+            }
+            return { ...s, attemptCount } as SessionWithCount;
+          })
+        );
+
+        setSessions(withCounts);
+      } catch (err) {
+        console.error("Gagal memuat sesi:", err);
+        setError("Gagal memuat sesi. Coba refresh halaman.");
       } finally {
         setLoading(false);
       }
@@ -60,16 +88,12 @@ export default function DashboardPage() {
     if (!user || !title.trim()) return;
 
     setCreating(true);
+    setError("");
     try {
-      let code = generateSessionCode();
-      const maxRetries = 5;
-      for (let i = 0; i < maxRetries; i++) {
-        const existing = await getDocs(
-          query(collection(db, "sessions"), where("__name__", "==", code))
-        );
-        if (existing.empty) break;
-        code = generateSessionCode();
-      }
+      // Kode 6 karakter acak (36^6 ≈ 2,2 miliar kombinasi) — peluang tabrakan
+      // dapat diabaikan. Tidak melakukan pre-check query karena query list
+      // tanpa constraint createdBy/published akan ditolak oleh security rules.
+      const code = generateSessionCode();
 
       const newSession: Omit<Session, "code"> = {
         title: title.trim(),
@@ -84,104 +108,117 @@ export default function DashboardPage() {
 
       await setDoc(doc(db, "sessions", code), newSession);
       router.push(`/admin/session/${code}`);
-    } catch (error) {
-      console.error("Gagal membuat sesi:", error);
-    } finally {
+    } catch (err) {
+      console.error("Gagal membuat sesi:", err);
+      setError("Gagal membuat sesi. Coba lagi.");
       setCreating(false);
     }
   }
 
-  async function handleLogout() {
-    await signOut(auth);
-    router.replace("/admin");
-  }
-
   if (authLoading || !user) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-gray-500">Memuat...</p>
+      <div className="flex-1 grid place-items-center">
+        <p className="text-slate-500">Memuat...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard Guru</h1>
-          <p className="text-sm text-gray-500">{user.email}</p>
+    <>
+      <AdminHeader />
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-slate-900">Dashboard Guru</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Kelola sesi latihan cerdas cermat keuangan syariah.
+          </p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-red-600 hover:text-red-800 font-medium"
-        >
-          Keluar
-        </button>
-      </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8">
-        <h2 className="text-lg font-bold mb-4">Buat Sesi Baru</h2>
-        <form onSubmit={handleCreate} className="flex gap-3">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Judul sesi, contoh: Bab 1 - Prinsip Syariah"
-            required
-            className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
-          <button
-            type="submit"
-            disabled={creating || !title.trim()}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold rounded-xl transition-colors whitespace-nowrap"
-          >
-            {creating ? "Membuat..." : "Buat"}
-          </button>
-        </form>
-      </div>
-
-      <h2 className="text-lg font-bold mb-4">Sesi Saya</h2>
-      {loading ? (
-        <p className="text-gray-500">Memuat sesi...</p>
-      ) : sessions.length === 0 ? (
-        <p className="text-gray-500">Belum ada sesi. Buat sesi baru di atas.</p>
-      ) : (
-        <div className="space-y-3">
-          {sessions.map((session) => (
-            <a
-              key={session.code}
-              href={`/admin/session/${session.code}`}
-              className="block bg-white dark:bg-gray-800 rounded-xl shadow p-4 hover:shadow-md transition-shadow"
+        {/* Buat sesi baru */}
+        <div className="card p-5 mb-8">
+          <h2 className="font-bold text-slate-900 mb-3">Buat Sesi Baru</h2>
+          <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Judul sesi, contoh: Bab 1 — Prinsip Syariah"
+              required
+              className="input flex-1"
+            />
+            <button
+              type="submit"
+              disabled={creating || !title.trim()}
+              className="btn-primary btn-lg whitespace-nowrap"
             >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-bold">{session.title}</h3>
-                  <p className="text-sm text-gray-500">
-                    {session.questions.length} soal &middot;{" "}
-                    {session.timerSeconds}d/soal
-                  </p>
-                </div>
-                <div className="text-right">
+              {creating ? "Membuat..." : "Buat Sesi"}
+            </button>
+          </form>
+        </div>
+
+        {/* Daftar sesi */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-slate-900">Sesi Saya</h2>
+          {!loading && sessions.length > 0 && (
+            <span className="text-sm text-slate-400">{sessions.length} sesi</span>
+          )}
+        </div>
+
+        {error && (
+          <div className="card p-4 mb-4 border-red-200 bg-red-50 text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <p className="text-slate-500">Memuat sesi...</p>
+        ) : sessions.length === 0 ? (
+          <div className="card p-10 text-center">
+            <p className="text-slate-600 font-medium">Belum ada sesi</p>
+            <p className="text-sm text-slate-400 mt-1">
+              Buat sesi pertama Anda menggunakan form di atas.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {sessions.map((session) => (
+              <a
+                key={session.code}
+                href={`/admin/session/${session.code}`}
+                className="card p-5 hover:shadow-md hover:border-primary-200 transition-all"
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <h3 className="font-bold text-slate-900 leading-snug">
+                    {session.title}
+                  </h3>
                   <span
-                    className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                      session.published
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                    }`}
+                    className={
+                      session.published ? "badge-success" : "badge-muted"
+                    }
                   >
                     {session.published ? "Published" : "Draft"}
                   </span>
-                  {session.published && (
-                    <p className="text-sm font-mono mt-1 text-blue-600 dark:text-blue-400">
-                      {session.code}
-                    </p>
-                  )}
                 </div>
-              </div>
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
+
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
+                  <span>{session.questions.length} soal</span>
+                  <span>{session.timerSeconds}d / soal</span>
+                  <span>{session.attemptCount} peserta</span>
+                </div>
+
+                {session.published && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+                    <span className="text-xs text-slate-400">Kode:</span>
+                    <span className="font-mono font-bold tracking-widest text-primary-700">
+                      {session.code}
+                    </span>
+                  </div>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+      </main>
+    </>
   );
 }

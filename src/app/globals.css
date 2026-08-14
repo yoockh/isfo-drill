@@ -1,24 +1,102 @@
 @import "tailwindcss";
 
+/*
+  ISFO Drill — Design System
+  Basis terang (light-only), satu warna aksen (teal — tema keuangan syariah),
+  satu skala radius, satu skala spacing (Tailwind default). Tanpa dark mode,
+  tanpa gradient dekoratif, tanpa glassmorphism.
+*/
+
+@theme {
+  /* Warna aksen tunggal: teal (identitas keuangan syariah ISFO) */
+  --color-primary-50: #f0fdfa;
+  --color-primary-100: #ccfbf1;
+  --color-primary-200: #99f6e4;
+  --color-primary-500: #14b8a6;
+  --color-primary-600: #0d9488;
+  --color-primary-700: #0f766e;
+  --color-primary-800: #115e59;
+
+  /* Radius konsisten untuk semua card & tombol */
+  --radius-card: 0.75rem;   /* 12px */
+  --radius-control: 0.625rem; /* 10px */
+}
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #e2e8f0;
-  }
+  color-scheme: light;
+  --background: #f6f7f9;   /* abu sangat muda untuk halaman admin */
+  --surface: #ffffff;      /* permukaan card */
+  --foreground: #0f172a;   /* slate-900 */
+  --muted: #64748b;        /* slate-500 */
+  --border: #e2e8f0;       /* slate-200 */
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  /* ---------- Kartu ---------- */
+  .card {
+    @apply bg-white border border-slate-200 rounded-[var(--radius-card)] shadow-sm;
+  }
+
+  /* ---------- Tombol ----------
+     Base + varian digabung agar tiap class self-contained (Tailwind v4
+     tidak mengizinkan @apply pada custom class). `.btn-lg` didefinisikan
+     setelah varian sehingga override padding-nya menang. */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-[var(--radius-control)]
+           font-semibold text-sm px-4 py-2.5 transition-colors
+           disabled:opacity-50 disabled:cursor-not-allowed select-none;
+  }
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 disabled:hover:bg-primary-600;
+  }
+  .btn-secondary {
+    @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply bg-white text-red-600 border border-red-200 hover:bg-red-50;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-slate-600 hover:bg-slate-100;
+  }
+  .btn-lg {
+    @apply text-base px-6 py-3.5;
+  }
+
+  /* ---------- Field input ---------- */
+  .label {
+    @apply block text-sm font-medium text-slate-700 mb-1.5;
+  }
+  .input,
+  .textarea {
+    @apply w-full px-4 py-2.5 bg-white border border-slate-300 rounded-[var(--radius-control)]
+           text-slate-900 placeholder:text-slate-400 outline-none
+           focus:border-primary-600 focus:ring-2 focus:ring-primary-100 transition-colors;
+  }
+  .textarea {
+    @apply resize-y;
+  }
+
+  /* ---------- Badge status ---------- */
+  .badge,
+  .badge-success,
+  .badge-muted {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+  .badge-success {
+    @apply bg-primary-50 text-primary-700;
+  }
+  .badge-muted {
+    @apply bg-slate-100 text-slate-600;
+  }
 }

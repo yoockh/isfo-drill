@@ -25,37 +25,35 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-sm">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1">Email</label>
+        <label className="label">Email</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="input"
           placeholder="guru@email.com"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Password</label>
+        <label className="label">Password</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="input"
           placeholder="••••••••"
         />
       </div>
       {error && (
-        <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+        <p className="text-red-600 text-sm bg-red-50 rounded-lg py-2 px-3">
+          {error}
+        </p>
       )}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-xl transition-colors"
-      >
+      <button type="submit" disabled={loading} className="btn-primary btn-lg w-full">
         {loading ? "Masuk..." : "Masuk"}
       </button>
     </form>

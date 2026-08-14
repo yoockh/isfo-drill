@@ -11,23 +11,29 @@ export function Timer({ remaining, total, isLow, isCritical }: TimerProps) {
   const progress = Math.max(0, remaining / total);
   const displaySeconds = Math.ceil(remaining);
 
-  let colorClass = "text-green-600 dark:text-green-400";
-  let barColor = "bg-green-500";
+  // Hijau/teal → kuning → merah (3 detik terakhir)
+  let numberColor = "text-primary-700";
+  let barColor = "bg-primary-600";
 
   if (isCritical) {
-    colorClass = "text-red-600 dark:text-red-400 animate-pulse";
+    numberColor = "text-red-600 animate-pulse";
     barColor = "bg-red-500";
   } else if (isLow) {
-    colorClass = "text-yellow-600 dark:text-yellow-400";
-    barColor = "bg-yellow-500";
+    numberColor = "text-amber-500";
+    barColor = "bg-amber-400";
   }
 
   return (
     <div className="w-full">
-      <div className={`text-center text-4xl font-bold tabular-nums ${colorClass}`}>
-        {displaySeconds}
+      <div className="flex items-baseline justify-center gap-1.5">
+        <span
+          className={`text-6xl font-bold tabular-nums leading-none ${numberColor}`}
+        >
+          {displaySeconds}
+        </span>
+        <span className="text-lg font-medium text-slate-400">dtk</span>
       </div>
-      <div className="mt-2 h-3 w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+      <div className="mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-100 ease-linear ${barColor}`}
           style={{ width: `${progress * 100}%` }}

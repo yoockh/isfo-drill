@@ -24,10 +24,7 @@ export function QuizRunner({
   teamName,
 }: QuizRunnerProps) {
   const quiz = useQuiz(questions);
-  const countdown = useCountdown(
-    timerSeconds,
-    quiz.phase === "answering"
-  );
+  const countdown = useCountdown(timerSeconds, quiz.phase === "answering");
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,7 +37,11 @@ export function QuizRunner({
   }, [quiz.phase, quiz.currentIndex]);
 
   useEffect(() => {
-    if (countdown.isDone && quiz.phase === "answering" && !timeoutHandledRef.current) {
+    if (
+      countdown.isDone &&
+      quiz.phase === "answering" &&
+      !timeoutHandledRef.current
+    ) {
       timeoutHandledRef.current = true;
       quiz.timeout(timerSeconds * 1000);
     }
@@ -89,21 +90,33 @@ export function QuizRunner({
     quiz.answer(index, countdown.elapsed);
   };
 
+  /* ---------- Layar SIAP ---------- */
   if (quiz.phase === "ready") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 w-full max-w-md text-center">
-          <h2 className="text-2xl font-bold mb-2">Siap?</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-2">
-            {questions.length} soal &middot; {timerSeconds} detik per soal
+      <div className="flex-1 flex flex-col items-center justify-center px-6 bg-white">
+        <div className="w-full max-w-sm text-center">
+          <p className="text-sm font-medium text-slate-400 mb-2">Tim</p>
+          <p className="text-xl font-bold text-slate-900 mb-6">
+            {teamName || "Anonim"}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-            Tim: {teamName || "Anonim"}
+          <div className="flex justify-center gap-8 mb-8">
+            <div>
+              <p className="text-3xl font-bold text-slate-900">
+                {questions.length}
+              </p>
+              <p className="text-sm text-slate-500">soal</p>
+            </div>
+            <div className="border-l border-slate-200" />
+            <div>
+              <p className="text-3xl font-bold text-slate-900">{timerSeconds}</p>
+              <p className="text-sm text-slate-500">detik / soal</p>
+            </div>
+          </div>
+          <p className="text-sm text-slate-500 mb-6">
+            Jawab secepat mungkin sebelum waktu habis. Tiap soal hanya bisa
+            dijawab satu kali.
           </p>
-          <button
-            onClick={quiz.start}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold rounded-xl transition-colors"
-          >
+          <button onClick={quiz.start} className="btn-primary btn-lg w-full">
             Mulai Quiz
           </button>
         </div>
@@ -111,123 +124,141 @@ export function QuizRunner({
     );
   }
 
+  /* ---------- Layar HASIL ---------- */
   if (quiz.phase === "finished") {
     const unanswered = quiz.answers.filter((a) => a.selectedIndex === null).length;
     const wrong = quiz.answers.filter(
       (a) => a.selectedIndex !== null && !a.correct
     ).length;
+    const pct = Math.round((quiz.score / questions.length) * 100);
 
     return (
-      <div className="px-4 py-8 max-w-2xl mx-auto">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center mb-8">
-          <h2 className="text-3xl font-bold mb-4">Hasil Quiz</h2>
-          <div className="text-6xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-            {quiz.score}/{questions.length}
+      <div className="flex-1 bg-white">
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          {/* Skor */}
+          <div className="text-center mb-8">
+            <p className="text-sm font-medium text-slate-400 mb-3">Hasil Quiz</p>
+            <div className="text-6xl font-bold text-primary-700 tabular-nums">
+              {quiz.score}
+              <span className="text-3xl text-slate-300">/{questions.length}</span>
+            </div>
+            <p className="text-slate-500 mt-2">{pct}% benar</p>
+
+            <div className="flex justify-center gap-3 mt-6">
+              <span className="badge-success">Benar {quiz.score}</span>
+              <span className="badge bg-red-50 text-red-600">Salah {wrong}</span>
+              <span className="badge bg-amber-50 text-amber-600">
+                Tak terjawab {unanswered}
+              </span>
+            </div>
+            {saving && (
+              <p className="text-sm text-slate-400 mt-4">Menyimpan hasil...</p>
+            )}
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Benar: {quiz.score} &middot; Salah: {wrong} &middot; Tidak dijawab: {unanswered}
-          </p>
-          {saving && (
-            <p className="text-sm text-gray-500 mt-4">Menyimpan hasil...</p>
-          )}
-        </div>
 
-        <div className="space-y-4">
-          <h3 className="text-xl font-bold">Rincian Jawaban</h3>
-          {questions.map((q, i) => {
-            const ans = quiz.answers[i];
-            const isCorrect = ans?.correct;
-            const timedOut = ans?.selectedIndex === null;
+          {/* Rincian */}
+          <h3 className="font-bold text-slate-900 mb-3">Rincian Jawaban</h3>
+          <div className="space-y-3">
+            {questions.map((q, i) => {
+              const ans = quiz.answers[i];
+              const isCorrect = ans?.correct;
+              const timedOut = ans?.selectedIndex === null;
 
-            return (
-              <div
-                key={q.id}
-                className={`p-4 rounded-xl border-2 ${
-                  isCorrect
-                    ? "border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950"
-                    : "border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-950"
-                }`}
-              >
-                <p className="font-medium mb-2">
-                  {i + 1}. {q.text}
-                </p>
-                <div className="grid grid-cols-1 gap-1 text-sm mb-2">
-                  {q.options.map((opt, oi) => {
-                    let optClass = "text-gray-600 dark:text-gray-400";
-                    if (oi === q.correctIndex) {
-                      optClass = "text-green-700 dark:text-green-400 font-bold";
-                    } else if (oi === ans?.selectedIndex) {
-                      optClass = "text-red-600 dark:text-red-400 line-through";
-                    }
-                    return (
-                      <span key={oi} className={optClass}>
-                        {OPTION_LABELS[oi]}. {opt}
-                        {oi === q.correctIndex && " ✓"}
-                      </span>
-                    );
-                  })}
+              return (
+                <div
+                  key={q.id}
+                  className={`rounded-[var(--radius-card)] border p-4 ${
+                    isCorrect
+                      ? "border-primary-200 bg-primary-50"
+                      : "border-red-200 bg-red-50"
+                  }`}
+                >
+                  <p className="font-medium text-slate-900 mb-2">
+                    {i + 1}. {q.text}
+                  </p>
+                  <div className="space-y-1 text-sm mb-2">
+                    {q.options.map((opt, oi) => {
+                      let cls = "text-slate-500";
+                      if (oi === q.correctIndex) {
+                        cls = "text-primary-700 font-semibold";
+                      } else if (oi === ans?.selectedIndex) {
+                        cls = "text-red-600 line-through";
+                      }
+                      return (
+                        <div key={oi} className={cls}>
+                          {OPTION_LABELS[oi]}. {opt}
+                          {oi === q.correctIndex && " ✓"}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    {timedOut
+                      ? "Waktu habis"
+                      : `Dijawab dalam ${(ans.timeSpentMs / 1000).toFixed(1)} detik`}
+                  </p>
                 </div>
-                <p className="text-xs text-gray-500">
-                  {timedOut
-                    ? "Waktu habis"
-                    : `Dijawab dalam ${(ans.timeSpentMs / 1000).toFixed(1)}d`}
-                </p>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        <div className="mt-8 text-center">
-          <a
-            href="/"
-            className="inline-block py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors"
-          >
-            Kembali ke Beranda
-          </a>
+          <div className="mt-8 text-center">
+            <a href="/" className="btn-primary btn-lg">
+              Kembali ke Beranda
+            </a>
+          </div>
         </div>
       </div>
     );
   }
 
+  /* ---------- Layar SOAL ---------- */
   const q = quiz.currentQuestion!;
   const showingFeedback = quiz.phase === "feedback";
+  const selected = quiz.answers[quiz.currentIndex]?.selectedIndex;
 
   return (
-    <div className="flex flex-col min-h-[100dvh] px-4 py-6 max-w-lg mx-auto">
-      <div className="text-center text-sm text-gray-500 dark:text-gray-400 mb-2">
-        Soal {quiz.currentIndex + 1} / {questions.length}
-      </div>
-
-      <Timer
-        remaining={countdown.remaining}
-        total={timerSeconds}
-        isLow={countdown.isLow}
-        isCritical={countdown.isCritical}
-      />
-
-      <div className="flex-1 flex flex-col justify-center mt-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
-          <p className="text-lg font-medium leading-relaxed">{q.text}</p>
+    <div className="flex-1 flex flex-col bg-white min-h-[100dvh]">
+      {/* Header sticky: progress + timer selalu terlihat */}
+      <header className="sticky top-0 bg-white border-b border-slate-100 px-4 pt-3 pb-4">
+        <div className="max-w-lg mx-auto">
+          <div className="flex items-center justify-between text-sm font-medium text-slate-400 mb-3">
+            <span>
+              Soal {quiz.currentIndex + 1} / {questions.length}
+            </span>
+            <span>{teamName}</span>
+          </div>
+          <Timer
+            remaining={countdown.remaining}
+            total={timerSeconds}
+            isLow={countdown.isLow}
+            isCritical={countdown.isCritical}
+          />
         </div>
+      </header>
 
-        <div className="grid grid-cols-1 gap-3">
+      {/* Konten soal */}
+      <div className="flex-1 flex flex-col px-4 py-6 max-w-lg mx-auto w-full">
+        <p className="text-xl sm:text-2xl font-semibold text-slate-900 leading-relaxed mb-6">
+          {q.text}
+        </p>
+
+        <div className="grid gap-3 mt-auto">
           {q.options.map((option, index) => {
-            let btnClass =
-              "w-full text-left p-4 rounded-xl border-2 font-medium text-base transition-all active:scale-[0.98]";
+            let cls =
+              "w-full text-left flex items-start gap-3 p-4 rounded-[var(--radius-control)] border-2 font-medium text-base transition-colors active:scale-[0.99]";
 
             if (showingFeedback) {
               if (index === q.correctIndex) {
-                btnClass += " border-green-500 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200";
-              } else if (
-                quiz.answers[quiz.currentIndex]?.selectedIndex === index
-              ) {
-                btnClass += " border-red-500 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200";
+                cls += " border-primary-500 bg-primary-50 text-primary-800";
+              } else if (selected === index) {
+                cls += " border-red-400 bg-red-50 text-red-700";
               } else {
-                btnClass += " border-gray-200 dark:border-gray-700 opacity-50";
+                cls += " border-slate-200 text-slate-400";
               }
             } else {
-              btnClass +=
-                " border-gray-200 dark:border-gray-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 active:bg-blue-100";
+              cls +=
+                " border-slate-200 bg-white text-slate-800 hover:border-primary-400 active:border-primary-500";
             }
 
             return (
@@ -235,34 +266,37 @@ export function QuizRunner({
                 key={index}
                 onClick={() => handleAnswer(index)}
                 disabled={showingFeedback}
-                className={btnClass}
+                className={cls}
               >
-                <span className="font-bold mr-2">{OPTION_LABELS[index]}.</span>
-                {option}
+                <span
+                  className={`shrink-0 grid place-items-center w-7 h-7 rounded-lg text-sm font-bold ${
+                    showingFeedback && index === q.correctIndex
+                      ? "bg-primary-600 text-white"
+                      : showingFeedback && selected === index
+                        ? "bg-red-500 text-white"
+                        : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {OPTION_LABELS[index]}
+                </span>
+                <span className="pt-0.5">{option}</span>
               </button>
             );
           })}
         </div>
 
-        {showingFeedback && (
-          <div className="mt-4 text-center">
-            {quiz.lastCorrect === true && (
-              <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                Benar!
-              </span>
-            )}
-            {quiz.lastCorrect === false && (
-              <span className="text-2xl font-bold text-red-600 dark:text-red-400">
-                Salah!
-              </span>
-            )}
-            {quiz.lastCorrect === null && (
-              <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                Waktu Habis!
-              </span>
-            )}
-          </div>
-        )}
+        {/* Feedback benar/salah */}
+        <div className="h-10 mt-4 flex items-center justify-center">
+          {showingFeedback && quiz.lastCorrect === true && (
+            <span className="text-xl font-bold text-primary-700">Benar!</span>
+          )}
+          {showingFeedback && quiz.lastCorrect === false && (
+            <span className="text-xl font-bold text-red-600">Salah!</span>
+          )}
+          {showingFeedback && quiz.lastCorrect === null && (
+            <span className="text-xl font-bold text-amber-500">Waktu Habis!</span>
+          )}
+        </div>
       </div>
     </div>
   );
