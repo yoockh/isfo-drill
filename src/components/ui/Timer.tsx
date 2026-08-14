@@ -11,32 +11,30 @@ export function Timer({ remaining, total, isLow, isCritical }: TimerProps) {
   const progress = Math.max(0, remaining / total);
   const displaySeconds = Math.ceil(remaining);
 
-  // Hijau/teal → kuning → merah (3 detik terakhir)
-  let numberColor = "text-primary-700";
-  let barColor = "bg-primary-600";
-
-  if (isCritical) {
-    numberColor = "text-red-600 animate-pulse";
-    barColor = "bg-red-500";
-  } else if (isLow) {
-    numberColor = "text-amber-500";
-    barColor = "bg-amber-400";
-  }
+  // Satu aksen (mustard). Merah HANYA sebagai sinyal urgensi 3 detik terakhir.
+  const critical = isCritical;
+  const boxColor = critical ? "var(--color-nb-red)" : "var(--color-mustard)";
 
   return (
     <div className="w-full">
-      <div className="flex items-baseline justify-center gap-1.5">
-        <span
-          className={`text-6xl font-bold tabular-nums leading-none ${numberColor}`}
-        >
+      <div
+        className={`border-[2.5px] sm:border-[3px] border-[#1a1a1a] rounded-[8px] shadow-[4px_4px_0_0_#1a1a1a] px-4 py-2 flex items-baseline justify-center gap-2 ${
+          critical ? "animate-pulse" : ""
+        }`}
+        style={{ backgroundColor: boxColor }}
+      >
+        <span className="text-6xl font-extrabold tabular-nums leading-none">
           {displaySeconds}
         </span>
-        <span className="text-lg font-medium text-slate-400">dtk</span>
+        <span className="text-lg font-extrabold">DTK</span>
       </div>
-      <div className="mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+      <div className="mt-2 h-3 w-full border-[2.5px] border-[#1a1a1a] rounded-[6px] overflow-hidden bg-white">
         <div
-          className={`h-full rounded-full transition-all duration-100 ease-linear ${barColor}`}
-          style={{ width: `${progress * 100}%` }}
+          className="h-full transition-all duration-100 ease-linear"
+          style={{
+            width: `${progress * 100}%`,
+            backgroundColor: isLow ? "var(--color-nb-red)" : "var(--color-teal)",
+          }}
         />
       </div>
     </div>

@@ -7,6 +7,9 @@ import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { QuestionEditor } from "@/components/admin/QuestionEditor";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { generateQuestionId } from "@/lib/utils";
 import type { Session, Question } from "@/lib/types";
 
@@ -188,7 +191,7 @@ export default function SessionDetailPage() {
   if (authLoading || loading) {
     return (
       <div className="flex-1 grid place-items-center">
-        <p className="text-slate-500">Memuat...</p>
+        <p className="font-bold text-[#1a1a1a]/60">Memuat...</p>
       </div>
     );
   }
@@ -198,12 +201,12 @@ export default function SessionDetailPage() {
       <>
         <AdminHeader />
         <div className="flex-1 grid place-items-center px-4">
-          <div className="card p-8 text-center">
-            <p className="text-red-600 mb-4">{message || "Sesi tidak ditemukan"}</p>
-            <a href="/admin/dashboard" className="btn-primary">
+          <Card color="red" className="p-8 text-center">
+            <p className="font-extrabold mb-4">{message || "Sesi tidak ditemukan"}</p>
+            <a href="/admin/dashboard" className="nb-btn nb-mustard">
               Kembali ke Dashboard
             </a>
-          </div>
+          </Card>
         </div>
       </>
     );
@@ -212,54 +215,51 @@ export default function SessionDetailPage() {
   return (
     <>
       <AdminHeader />
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8 pb-28">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8 pb-32">
         {/* Breadcrumb + judul */}
         <div className="mb-6">
           <a
             href="/admin/dashboard"
-            className="text-sm text-slate-500 hover:text-primary-700"
+            className="inline-block text-sm font-extrabold hover:underline"
           >
-            ← Dashboard
+            ← DASHBOARD
           </a>
           <div className="flex items-center justify-between gap-4 mt-2">
-            <h1 className="text-2xl font-bold text-slate-900">{session.title}</h1>
-            <span className={session.published ? "badge-success" : "badge-muted"}>
-              {session.published ? "Published" : "Draft"}
-            </span>
+            <h1 className="text-3xl font-extrabold tracking-tight">{session.title}</h1>
+            <Badge color={session.published ? "green" : "mustard"}>
+              {session.published ? "PUBLISHED" : "DRAFT"}
+            </Badge>
           </div>
         </div>
 
         {/* Banner published */}
         {session.published && (
-          <div className="card p-5 mb-6 border-primary-200 bg-primary-50">
+          <Card color="green" className="p-5 mb-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-sm text-primary-800">
-                  Sesi aktif. Bagikan kode ke peserta:
+                <p className="text-sm font-extrabold uppercase tracking-wide">
+                  Sesi aktif — bagikan kode ke peserta:
                 </p>
-                <p className="text-3xl font-mono font-bold text-primary-700 tracking-widest">
+                <p className="text-4xl font-mono font-extrabold tracking-widest mt-1">
                   {code}
                 </p>
               </div>
               <div className="flex gap-2">
-                <a
-                  href={`/admin/session/${code}/attempts`}
-                  className="btn-secondary"
-                >
+                <a href={`/admin/session/${code}/attempts`} className="nb-btn nb-white">
                   Lihat Hasil
                 </a>
-                <button onClick={handleUnpublish} className="btn-danger">
+                <Button color="red" onClick={handleUnpublish}>
                   Unpublish
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Materi sumber + generate */}
-        <section className="card p-5 mb-6">
-          <h2 className="font-bold text-slate-900 mb-1">Materi Sumber</h2>
-          <p className="text-sm text-slate-500 mb-3">
+        <Card className="p-5 mb-6">
+          <h2 className="font-extrabold text-lg mb-1">MATERI SUMBER</h2>
+          <p className="text-sm font-bold text-[#1a1a1a]/60 mb-3">
             Tempel materi, lalu biarkan AI membuat draft soal pilihan ganda.
           </p>
           <textarea
@@ -267,34 +267,36 @@ export default function SessionDetailPage() {
             onChange={(e) => setRawMaterial(e.target.value)}
             rows={7}
             placeholder="Paste materi teks mentah di sini..."
-            className="textarea text-sm"
+            className="nb-input resize-y text-sm"
           />
           <div className="flex flex-wrap items-end gap-4 mt-4">
             <div>
-              <label className="label">Jumlah soal</label>
+              <label className="block text-sm font-extrabold uppercase tracking-wide mb-1.5">
+                Jumlah soal
+              </label>
               <input
                 type="number"
                 min={1}
                 max={30}
                 value={questionCount}
                 onChange={(e) => setQuestionCount(Number(e.target.value))}
-                className="input w-24"
+                className="nb-input w-24"
               />
             </div>
-            <button
+            <Button
+              color="mustard"
               onClick={handleGenerate}
               disabled={generating || !rawMaterial.trim()}
-              className="btn-primary"
             >
-              {generating ? "Generating..." : "Generate Draft Soal"}
-            </button>
+              {generating ? "Generating..." : "⚡ Generate Draft Soal"}
+            </Button>
           </div>
-        </section>
+        </Card>
 
         {/* Timer */}
-        <section className="card p-5 mb-6">
-          <h2 className="font-bold text-slate-900 mb-1">Pengaturan Timer</h2>
-          <p className="text-sm text-slate-500 mb-3">
+        <Card className="p-5 mb-6">
+          <h2 className="font-extrabold text-lg mb-1">PENGATURAN TIMER</h2>
+          <p className="text-sm font-bold text-[#1a1a1a]/60 mb-3">
             Waktu maksimal peserta menjawab setiap soal.
           </p>
           <div className="flex items-center gap-3">
@@ -304,30 +306,32 @@ export default function SessionDetailPage() {
               max={120}
               value={timerSeconds}
               onChange={(e) => setTimerSeconds(Number(e.target.value))}
-              className="input w-24"
+              className="nb-input w-24"
             />
-            <span className="text-sm text-slate-500">detik per soal (default: 15)</span>
+            <span className="text-sm font-bold text-[#1a1a1a]/70">
+              detik per soal (default: 15)
+            </span>
           </div>
-        </section>
+        </Card>
 
         {/* Daftar soal */}
         <section className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-slate-900">
-              Daftar Soal ({questions.length})
+            <h2 className="font-extrabold text-lg">
+              DAFTAR SOAL ({questions.length})
             </h2>
-            <button onClick={addManualQuestion} className="btn-secondary">
+            <Button color="purple" onClick={addManualQuestion}>
               + Tambah Manual
-            </button>
+            </Button>
           </div>
 
           {questions.length === 0 ? (
-            <div className="card p-10 text-center">
-              <p className="text-slate-600 font-medium">Belum ada soal</p>
-              <p className="text-sm text-slate-400 mt-1">
+            <Card className="p-10 text-center">
+              <p className="font-extrabold text-lg">BELUM ADA SOAL</p>
+              <p className="font-bold text-[#1a1a1a]/60 mt-1">
                 Generate dari materi di atas atau tambahkan manual.
               </p>
-            </div>
+            </Card>
           ) : (
             <div className="space-y-4">
               {questions.map((q, i) => (
@@ -345,35 +349,37 @@ export default function SessionDetailPage() {
       </main>
 
       {/* Action bar sticky */}
-      <div className="sticky bottom-0 bg-white/95 backdrop-blur border-t border-slate-200">
+      <div className="sticky bottom-0 bg-[var(--paper)] border-t-[2.5px] sm:border-t-[3px] border-[#1a1a1a]">
         <div className="max-w-4xl mx-auto px-4 py-3">
           {message && (
             <p
-              className={`text-sm text-center mb-2 rounded-lg py-1.5 px-3 ${
-                isError
-                  ? "bg-red-50 text-red-700"
-                  : "bg-primary-50 text-primary-700"
+              className={`text-sm font-bold text-center mb-2 border-[2.5px] border-[#1a1a1a] rounded-[6px] py-1.5 px-3 ${
+                isError ? "nb-red" : "nb-green"
               }`}
             >
               {message}
             </p>
           )}
           <div className="flex gap-3">
-            <button
+            <Button
+              color="white"
+              size="lg"
               onClick={handleSave}
               disabled={saving}
-              className="btn-secondary btn-lg flex-1"
+              className="flex-1"
             >
               {saving ? "Menyimpan..." : "Simpan Draft"}
-            </button>
+            </Button>
             {!session.published && (
-              <button
+              <Button
+                color="mustard"
+                size="lg"
                 onClick={handlePublish}
                 disabled={publishing || questions.length === 0}
-                className="btn-primary btn-lg flex-1"
+                className="flex-1"
               >
-                {publishing ? "Publishing..." : "Publish Sesi"}
-              </button>
+                {publishing ? "Publishing..." : "Publish Sesi →"}
+              </Button>
             )}
           </div>
         </div>

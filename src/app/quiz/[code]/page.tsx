@@ -52,18 +52,18 @@ export default function QuizPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 grid place-items-center bg-white">
-        <p className="text-lg text-slate-400">Memuat soal...</p>
+      <div className="flex-1 grid place-items-center bg-[var(--paper)]">
+        <p className="text-lg font-bold text-[#1a1a1a]/60">Memuat soal...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex-1 grid place-items-center px-4 bg-white">
-        <div className="card p-8 text-center max-w-sm">
-          <p className="text-red-600 text-lg mb-5">{error}</p>
-          <a href="/" className="btn-primary btn-lg">
+      <div className="flex-1 grid place-items-center px-4 bg-[var(--paper)]">
+        <div className="nb-card nb-red p-8 text-center max-w-sm">
+          <p className="font-extrabold text-lg mb-5">{error}</p>
+          <a href="/" className="nb-btn nb-white nb-btn-lg">
             Kembali
           </a>
         </div>

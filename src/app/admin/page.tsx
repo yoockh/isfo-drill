@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginForm } from "@/components/admin/LoginForm";
+import { Card } from "@/components/ui/Card";
+import { Star, Dot, Square } from "@/components/ui/Decor";
 
 export default function AdminLoginPage() {
   const { user, loading } = useAuth();
@@ -18,7 +20,7 @@ export default function AdminLoginPage() {
   if (loading) {
     return (
       <div className="flex-1 grid place-items-center">
-        <p className="text-slate-500">Memuat...</p>
+        <p className="font-bold text-[#1a1a1a]/60">Memuat...</p>
       </div>
     );
   }
@@ -26,18 +28,24 @@ export default function AdminLoginPage() {
   if (user) return null;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-grid place-items-center w-14 h-14 rounded-2xl bg-primary-600 text-white text-2xl font-bold mb-4">
+    <div className="relative flex-1 flex flex-col items-center justify-center px-4 py-10 overflow-hidden">
+      <Square className="hidden sm:block absolute top-20 left-[16%] w-9 h-9" color="var(--color-mustard)" />
+      <Dot className="hidden sm:block absolute bottom-24 right-[18%] w-8 h-8" color="var(--color-pink)" />
+      <Star className="hidden sm:block absolute bottom-20 left-[20%] w-8 h-8" color="var(--color-teal)" />
+
+      <div className="w-full max-w-sm relative">
+        <div className="text-center mb-7">
+          <div className="inline-grid place-items-center w-16 h-16 bg-[var(--color-teal)] border-[3px] border-[#1a1a1a] rounded-[8px] shadow-[5px_5px_0_0_#1a1a1a] text-3xl font-extrabold mb-4 rotate-[-4deg]">
             i
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Panel Guru</h1>
-          <p className="text-slate-500 mt-1">Masuk untuk mengelola sesi quiz</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">PANEL GURU</h1>
+          <p className="font-bold text-[#1a1a1a]/70 mt-1">
+            Masuk untuk mengelola sesi quiz
+          </p>
         </div>
-        <div className="card p-6">
+        <Card className="p-6">
           <LoginForm />
-        </div>
+        </Card>
       </div>
     </div>
   );

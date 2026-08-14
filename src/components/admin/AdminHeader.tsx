@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/Button";
 
 export function AdminHeader() {
   const { user } = useAuth();
@@ -15,26 +16,28 @@ export function AdminHeader() {
   }
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-      <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-        <a href="/admin/dashboard" className="flex items-center gap-2">
-          <span className="grid place-items-center w-7 h-7 rounded-lg bg-primary-600 text-white font-bold text-sm">
+    <header className="nb-teal border-b-[2.5px] sm:border-b-[3px] border-[#1a1a1a] sticky top-0 z-20">
+      <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+        <a href="/admin/dashboard" className="flex items-center gap-2.5">
+          <span className="grid place-items-center w-9 h-9 bg-[#1a1a1a] text-[var(--color-mustard)] font-extrabold text-lg rounded-[6px] border-[2.5px] border-[#1a1a1a]">
             i
           </span>
-          <span className="font-bold text-slate-900">ISFO Drill</span>
-          <span className="hidden sm:inline text-xs text-slate-400 font-medium border-l border-slate-200 pl-2">
-            Panel Guru
+          <span className="font-extrabold text-lg text-[#1a1a1a] tracking-tight">
+            ISFO DRILL
+          </span>
+          <span className="hidden sm:inline text-xs font-bold text-[#1a1a1a]/70 border-l-[2.5px] border-[#1a1a1a] pl-2.5">
+            PANEL GURU
           </span>
         </a>
         <div className="flex items-center gap-3">
           {user?.email && (
-            <span className="hidden sm:inline text-sm text-slate-500">
+            <span className="hidden md:inline text-sm font-bold text-[#1a1a1a]/80">
               {user.email}
             </span>
           )}
-          <button onClick={handleLogout} className="btn-ghost text-red-600 hover:bg-red-50">
+          <Button color="red" onClick={handleLogout}>
             Keluar
-          </button>
+          </Button>
         </div>
       </div>
     </header>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
+import { Button } from "@/components/ui/Button";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -27,35 +28,39 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="label">Email</label>
+        <label className="block text-sm font-extrabold uppercase tracking-wide mb-1.5">
+          Email
+        </label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="input"
+          className="nb-input"
           placeholder="guru@email.com"
         />
       </div>
       <div>
-        <label className="label">Password</label>
+        <label className="block text-sm font-extrabold uppercase tracking-wide mb-1.5">
+          Password
+        </label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="input"
+          className="nb-input"
           placeholder="••••••••"
         />
       </div>
       {error && (
-        <p className="text-red-600 text-sm bg-red-50 rounded-lg py-2 px-3">
+        <p className="nb-red border-[2.5px] border-[#1a1a1a] rounded-[6px] text-sm font-bold py-2 px-3">
           {error}
         </p>
       )}
-      <button type="submit" disabled={loading} className="btn-primary btn-lg w-full">
-        {loading ? "Masuk..." : "Masuk"}
-      </button>
+      <Button type="submit" color="mustard" size="lg" disabled={loading} className="w-full">
+        {loading ? "Masuk..." : "Masuk →"}
+      </Button>
     </form>
   );
 }

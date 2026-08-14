@@ -15,12 +15,19 @@ import {
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Star, Dot, Square } from "@/components/ui/Decor";
 import { generateSessionCode } from "@/lib/utils";
 import type { Session } from "@/lib/types";
 
 interface SessionWithCount extends Session {
   attemptCount: number;
 }
+
+// Rotasi warna aksen kartu supaya dashboard terasa "hidup"
+const CARD_COLORS = ["mustard", "teal", "pink", "purple"] as const;
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -52,7 +59,6 @@ export default function DashboardPage() {
           (d) => ({ ...d.data(), code: d.id } as Session)
         );
 
-        // Hitung jumlah attempt per sesi
         const withCounts = await Promise.all(
           base.map(async (s) => {
             let attemptCount = 0;
@@ -90,9 +96,8 @@ export default function DashboardPage() {
     setCreating(true);
     setError("");
     try {
-      // Kode 6 karakter acak (36^6 ≈ 2,2 miliar kombinasi) — peluang tabrakan
-      // dapat diabaikan. Tidak melakukan pre-check query karena query list
-      // tanpa constraint createdBy/published akan ditolak oleh security rules.
+      // Kode 6 karakter acak (36^6 ~ 2,2 miliar) — peluang tabrakan diabaikan.
+      // Tanpa pre-check query agar tidak kena penolakan security rules.
       const code = generateSessionCode();
 
       const newSession: Omit<Session, "code"> = {
@@ -118,7 +123,7 @@ export default function DashboardPage() {
   if (authLoading || !user) {
     return (
       <div className="flex-1 grid place-items-center">
-        <p className="text-slate-500">Memuat...</p>
+        <p className="font-bold text-[#1a1a1a]/60">Memuat...</p>
       </div>
     );
   }
@@ -126,17 +131,24 @@ export default function DashboardPage() {
   return (
     <>
       <AdminHeader />
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard Guru</h1>
-          <p className="text-sm text-slate-500 mt-1">
+      <main className="relative flex-1 max-w-4xl w-full mx-auto px-4 py-8 overflow-hidden">
+        {/* Dekorasi */}
+        <Star className="hidden md:block absolute top-6 right-4 w-10 h-10" color="var(--color-mustard)" />
+        <Dot className="hidden md:block absolute top-40 right-2 w-7 h-7" color="var(--color-pink)" />
+
+        <div className="mb-6 relative">
+          <h1 className="text-3xl font-extrabold tracking-tight">DASHBOARD GURU</h1>
+          <p className="font-bold text-[#1a1a1a]/70 mt-1">
             Kelola sesi latihan cerdas cermat keuangan syariah.
           </p>
         </div>
 
         {/* Buat sesi baru */}
-        <div className="card p-5 mb-8">
-          <h2 className="font-bold text-slate-900 mb-3">Buat Sesi Baru</h2>
+        <Card color="purple" className="p-5 mb-8">
+          <h2 className="font-extrabold text-lg mb-3 flex items-center gap-2">
+            <Square className="w-5 h-5 rotate-0" color="var(--color-mustard)" />
+            BUAT SESI BARU
+          </h2>
           <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
@@ -144,72 +156,89 @@ export default function DashboardPage() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Judul sesi, contoh: Bab 1 — Prinsip Syariah"
               required
-              className="input flex-1"
+              className="nb-input flex-1"
             />
-            <button
+            <Button
               type="submit"
+              color="mustard"
+              size="lg"
               disabled={creating || !title.trim()}
-              className="btn-primary btn-lg whitespace-nowrap"
+              className="whitespace-nowrap"
             >
-              {creating ? "Membuat..." : "Buat Sesi"}
-            </button>
+              {creating ? "Membuat..." : "+ Buat Sesi"}
+            </Button>
           </form>
-        </div>
+        </Card>
 
         {/* Daftar sesi */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-slate-900">Sesi Saya</h2>
+          <h2 className="font-extrabold text-lg">SESI SAYA</h2>
           {!loading && sessions.length > 0 && (
-            <span className="text-sm text-slate-400">{sessions.length} sesi</span>
+            <Badge color="teal">{sessions.length} SESI</Badge>
           )}
         </div>
 
         {error && (
-          <div className="card p-4 mb-4 border-red-200 bg-red-50 text-red-700 text-sm">
+          <Card color="red" className="p-4 mb-4 font-bold text-sm">
             {error}
-          </div>
+          </Card>
         )}
 
         {loading ? (
-          <p className="text-slate-500">Memuat sesi...</p>
+          <p className="font-bold text-[#1a1a1a]/60">Memuat sesi...</p>
         ) : sessions.length === 0 ? (
-          <div className="card p-10 text-center">
-            <p className="text-slate-600 font-medium">Belum ada sesi</p>
-            <p className="text-sm text-slate-400 mt-1">
+          <Card className="p-10 text-center">
+            <div className="inline-block mb-3">
+              <Star className="w-10 h-10 mx-auto" color="var(--color-mustard)" />
+            </div>
+            <p className="font-extrabold text-lg">BELUM ADA SESI</p>
+            <p className="font-bold text-[#1a1a1a]/60 mt-1">
               Buat sesi pertama Anda menggunakan form di atas.
             </p>
-          </div>
+          </Card>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {sessions.map((session) => (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sessions.map((session, i) => (
               <a
                 key={session.code}
                 href={`/admin/session/${session.code}`}
-                className="card p-5 hover:shadow-md hover:border-primary-200 transition-all"
+                className="nb-card nb-white p-5 block transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5"
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
-                  <h3 className="font-bold text-slate-900 leading-snug">
-                    {session.title}
-                  </h3>
                   <span
-                    className={
-                      session.published ? "badge-success" : "badge-muted"
-                    }
-                  >
-                    {session.published ? "Published" : "Draft"}
+                    className="inline-block w-8 h-8 shrink-0 border-[2.5px] border-[#1a1a1a] rounded-[6px]"
+                    style={{
+                      backgroundColor: `var(--color-${
+                        session.published ? "nb-green" : CARD_COLORS[i % CARD_COLORS.length]
+                      })`,
+                    }}
+                    aria-hidden
+                  />
+                  <Badge color={session.published ? "green" : "white"}>
+                    {session.published ? "PUBLISHED" : "DRAFT"}
+                  </Badge>
+                </div>
+
+                <h3 className="font-extrabold text-lg leading-snug mb-3">
+                  {session.title}
+                </h3>
+
+                <div className="flex flex-wrap gap-2 text-xs font-bold">
+                  <span className="border-[2px] border-[#1a1a1a] rounded-[5px] px-2 py-0.5">
+                    {session.questions.length} soal
+                  </span>
+                  <span className="border-[2px] border-[#1a1a1a] rounded-[5px] px-2 py-0.5">
+                    {session.timerSeconds}d/soal
+                  </span>
+                  <span className="border-[2px] border-[#1a1a1a] rounded-[5px] px-2 py-0.5">
+                    {session.attemptCount} peserta
                   </span>
                 </div>
 
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
-                  <span>{session.questions.length} soal</span>
-                  <span>{session.timerSeconds}d / soal</span>
-                  <span>{session.attemptCount} peserta</span>
-                </div>
-
                 {session.published && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Kode:</span>
-                    <span className="font-mono font-bold tracking-widest text-primary-700">
+                  <div className="mt-3 pt-3 border-t-[2.5px] border-[#1a1a1a]/15 flex items-center gap-2">
+                    <span className="text-xs font-bold text-[#1a1a1a]/50">KODE:</span>
+                    <span className="font-mono font-extrabold tracking-widest nb-mustard border-[2px] border-[#1a1a1a] rounded-[5px] px-2">
                       {session.code}
                     </span>
                   </div>

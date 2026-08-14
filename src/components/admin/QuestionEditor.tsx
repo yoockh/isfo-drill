@@ -32,12 +32,12 @@ export function QuestionEditor({
   }
 
   return (
-    <div className="card p-4">
+    <div className="nb-card nb-white p-4">
       <div className="flex justify-between items-center mb-3">
-        <span className="text-sm font-bold text-slate-400">Soal {index + 1}</span>
+        <span className="nb-badge nb-teal">SOAL {index + 1}</span>
         <button
           onClick={onDelete}
-          className="text-sm font-medium text-red-500 hover:text-red-700"
+          className="text-sm font-extrabold text-[var(--color-nb-red)] hover:underline"
         >
           Hapus
         </button>
@@ -48,7 +48,7 @@ export function QuestionEditor({
         onChange={(e) => updateText(e.target.value)}
         rows={2}
         placeholder="Tulis teks soal..."
-        className="textarea text-sm mb-3"
+        className="nb-input resize-y text-sm mb-3"
       />
 
       <div className="space-y-2">
@@ -60,10 +60,8 @@ export function QuestionEditor({
                 type="button"
                 onClick={() => updateCorrectIndex(oi)}
                 title="Tandai sebagai jawaban benar"
-                className={`w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                  isCorrect
-                    ? "border-primary-600 bg-primary-600 text-white"
-                    : "border-slate-300 text-slate-500 hover:border-primary-400"
+                className={`w-9 h-9 shrink-0 border-[2.5px] border-[#1a1a1a] rounded-[6px] font-extrabold text-sm transition-transform active:translate-x-[2px] active:translate-y-[2px] ${
+                  isCorrect ? "nb-green" : "nb-white"
                 }`}
               >
                 {OPTION_LABELS[oi]}
@@ -73,13 +71,13 @@ export function QuestionEditor({
                 value={option}
                 onChange={(e) => updateOption(oi, e.target.value)}
                 placeholder={`Pilihan ${OPTION_LABELS[oi]}`}
-                className="input text-sm py-2"
+                className="nb-input text-sm"
               />
             </div>
           );
         })}
       </div>
-      <p className="text-xs text-slate-400 mt-2">
+      <p className="text-xs font-bold text-[#1a1a1a]/50 mt-2">
         Klik huruf untuk menandai jawaban benar (kini: {OPTION_LABELS[question.correctIndex]}).
       </p>
     </div>
