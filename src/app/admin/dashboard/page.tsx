@@ -11,6 +11,8 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
+  writeBatch,
   Timestamp,
 } from "firebase/firestore";
 import { Search } from "lucide-react";
@@ -39,7 +41,7 @@ const CARD_COLORS = ["mustard", "teal", "pink", "purple"] as const;
 const PAGE_SIZE = 10;
 
 export default function DashboardPage() {
-  const { user, loading: authLoading, getIdToken } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [sessions, setSessions] = useState<SessionWithCount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -204,24 +206,27 @@ export default function DashboardPage() {
     setActionBusy(true);
     setActionError("");
     try {
-      const token = await getIdToken();
-      const res = await fetch("/api/delete-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ sessionCode: deleteTarget.code }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setActionError(d.error || "Gagal menghapus sesi.");
-        return;
+      const targetCode = deleteTarget.code;
+      // Hapus semua attempt terkait dulu (sesi masih ada agar rule get() valid),
+      // lalu hapus dokumen sesi terakhir.
+      const snap = await getDocs(
+        query(collection(db, "attempts"), where("sessionCode", "==", targetCode))
+      );
+      const ids = snap.docs.map((d) => d.id);
+      for (let i = 0; i < ids.length; i += 400) {
+        const batch = writeBatch(db);
+        for (const id of ids.slice(i, i + 400)) {
+          batch.delete(doc(db, "attempts", id));
+        }
+        await batch.commit();
       }
-      setSessions((prev) => prev.filter((s) => s.code !== deleteTarget.code));
+      await deleteDoc(doc(db, "sessions", targetCode));
+
+      setSessions((prev) => prev.filter((s) => s.code !== targetCode));
       setDeleteTarget(null);
-    } catch {
-      setActionError("Gagal menghapus sesi. Cek koneksi.");
+    } catch (err) {
+      console.error("Gagal menghapus sesi:", err);
+      setActionError("Gagal menghapus sesi. Coba lagi.");
     } finally {
       setActionBusy(false);
     }

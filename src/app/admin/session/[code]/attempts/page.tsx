@@ -10,6 +10,8 @@ import {
   getDocs,
   doc,
   getDoc,
+  deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { Trash2, Search } from "lucide-react";
 import { db } from "@/lib/firebase/client";
@@ -31,7 +33,7 @@ export default function AttemptsPage() {
   const params = useParams();
   const router = useRouter();
   const code = params.code as string;
-  const { user, loading: authLoading, getIdToken } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [session, setSession] = useState<Session | null>(null);
   const [attempts, setAttempts] = useState<AttemptWithId[]>([]);
@@ -99,33 +101,18 @@ export default function AttemptsPage() {
     }
   }, [attempts, selectedId]);
 
-  async function authFetch(body: object) {
-    const token = await getIdToken();
-    return fetch("/api/delete-attempts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
-  }
-
   async function confirmDeleteSingle() {
     if (!deleteTarget) return;
     setDeleting(true);
     setActionError("");
     try {
-      const res = await authFetch({ sessionCode: code, attemptId: deleteTarget.id });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setActionError(d.error || "Gagal menghapus hasil.");
-        return;
-      }
+      // Hapus langsung via Firestore (rules mengizinkan guru pemilik sesi).
+      await deleteDoc(doc(db, "attempts", deleteTarget.id));
       setAttempts((prev) => prev.filter((a) => a.id !== deleteTarget.id));
       setDeleteTarget(null);
-    } catch {
-      setActionError("Gagal menghapus. Cek koneksi.");
+    } catch (err) {
+      console.error("Gagal menghapus hasil:", err);
+      setActionError("Gagal menghapus hasil. Coba lagi.");
     } finally {
       setDeleting(false);
     }
@@ -135,16 +122,20 @@ export default function AttemptsPage() {
     setDeleting(true);
     setActionError("");
     try {
-      const res = await authFetch({ sessionCode: code });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setActionError(d.error || "Gagal menghapus riwayat.");
-        return;
+      // Hapus semua attempt (yang sudah dimuat) dalam batch ber-chunk 400.
+      const ids = attempts.map((a) => a.id);
+      for (let i = 0; i < ids.length; i += 400) {
+        const batch = writeBatch(db);
+        for (const id of ids.slice(i, i + 400)) {
+          batch.delete(doc(db, "attempts", id));
+        }
+        await batch.commit();
       }
       setAttempts([]);
       setDeleteAllOpen(false);
-    } catch {
-      setActionError("Gagal menghapus. Cek koneksi.");
+    } catch (err) {
+      console.error("Gagal menghapus riwayat:", err);
+      setActionError("Gagal menghapus riwayat. Coba lagi.");
     } finally {
       setDeleting(false);
     }
