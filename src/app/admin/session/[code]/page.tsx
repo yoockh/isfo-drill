@@ -10,6 +10,7 @@ import { QuestionEditor } from "@/components/admin/QuestionEditor";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { generateQuestionId } from "@/lib/utils";
 import type { Session, Question } from "@/lib/types";
 
@@ -30,6 +31,7 @@ export default function SessionDetailPage() {
   const [publishing, setPublishing] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [regenOpen, setRegenOpen] = useState(false);
 
   function notify(text: string, error = false) {
     setMessage(text);
@@ -65,7 +67,9 @@ export default function SessionDetailPage() {
     if (user) loadSession();
   }, [code, user]);
 
-  async function handleGenerate() {
+  // mode "append": tambahkan ke daftar soal yang ada.
+  // mode "replace": ganti total seluruh draft soal.
+  async function handleGenerate(mode: "append" | "replace" = "append") {
     if (!rawMaterial.trim()) {
       notify("Masukkan materi terlebih dahulu", true);
       return;
@@ -101,8 +105,13 @@ export default function SessionDetailPage() {
         })
       );
 
-      setQuestions((prev) => [...prev, ...newQuestions]);
-      notify(`${newQuestions.length} soal berhasil di-generate!`);
+      if (mode === "replace") {
+        setQuestions(newQuestions);
+        notify(`Draft diganti dengan ${newQuestions.length} soal baru! Jangan lupa Simpan.`);
+      } else {
+        setQuestions((prev) => [...prev, ...newQuestions]);
+        notify(`${newQuestions.length} soal ditambahkan! Jangan lupa Simpan.`);
+      }
     } catch {
       notify("Gagal generate soal. Coba lagi.", true);
     } finally {
@@ -283,14 +292,49 @@ export default function SessionDetailPage() {
                 className="nb-input w-24"
               />
             </div>
-            <Button
-              color="mustard"
-              onClick={handleGenerate}
-              disabled={generating || !rawMaterial.trim()}
-            >
-              {generating ? "Generating..." : "⚡ Generate Draft Soal"}
-            </Button>
+
+            {questions.length === 0 ? (
+              // Sesi masih kosong: satu tombol generate dari nol.
+              <Button
+                color="mustard"
+                onClick={() => handleGenerate("append")}
+                disabled={generating || !rawMaterial.trim()}
+              >
+                {generating ? "Generating..." : "⚡ Generate Draft Soal"}
+              </Button>
+            ) : (
+              // Sesi sudah punya soal: dua aksi terpisah.
+              <>
+                <Button
+                  color="purple"
+                  onClick={() => handleGenerate("append")}
+                  disabled={generating || !rawMaterial.trim()}
+                >
+                  {generating ? "Memproses..." : "+ Tambah Soal Baru"}
+                </Button>
+                <Button
+                  color="red"
+                  onClick={() => setRegenOpen(true)}
+                  disabled={generating || !rawMaterial.trim()}
+                >
+                  Generate Ulang Semua
+                </Button>
+              </>
+            )}
           </div>
+
+          {questions.length > 0 && (
+            <p className="text-xs font-bold text-[#1a1a1a]/60 mt-3">
+              &ldquo;+ Tambah Soal Baru&rdquo; menambah soal di bawah yang sudah ada.
+              &ldquo;Generate Ulang Semua&rdquo; mengganti seluruh {questions.length} soal.
+              {session.published && (
+                <span className="text-[var(--color-nb-red)]">
+                  {" "}Sesi ini sudah published — mengubah soal dapat membuat
+                  statistik pada riwayat pengerjaan lama tidak konsisten.
+                </span>
+              )}
+            </p>
+          )}
         </Card>
 
         {/* Timer */}
@@ -384,6 +428,21 @@ export default function SessionDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={regenOpen}
+        title="Generate ulang semua soal?"
+        message={`Ini akan menghapus ${questions.length} soal yang sudah ada dan menggantinya dengan draft baru dari materi. Soal yang sudah diedit akan hilang. Lanjutkan?`}
+        confirmLabel="Ya, Ganti Semua"
+        cancelLabel="Batal"
+        confirmColor="red"
+        loading={generating}
+        onConfirm={async () => {
+          await handleGenerate("replace");
+          setRegenOpen(false);
+        }}
+        onCancel={() => setRegenOpen(false)}
+      />
     </>
   );
 }
