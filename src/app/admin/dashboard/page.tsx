@@ -10,18 +10,25 @@ import {
   getDocs,
   doc,
   setDoc,
+  updateDoc,
   Timestamp,
 } from "firebase/firestore";
+import { Search } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { SessionMenu } from "@/components/admin/SessionMenu";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Star, Dot, Square } from "@/components/ui/Decor";
 import { Pagination } from "@/components/ui/Pagination";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 import { generateSessionCode } from "@/lib/utils";
 import type { Session } from "@/lib/types";
+
+type SortKey = "newest" | "oldest" | "az" | "za";
 
 interface SessionWithCount extends Session {
   attemptCount: number;
@@ -32,7 +39,7 @@ const CARD_COLORS = ["mustard", "teal", "pink", "purple"] as const;
 const PAGE_SIZE = 10;
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, getIdToken } = useAuth();
   const router = useRouter();
   const [sessions, setSessions] = useState<SessionWithCount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,9 +48,51 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
 
-  const pageCount = Math.ceil(sessions.length / PAGE_SIZE);
+  // Search & sort
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("newest");
+
+  // Aksi sesi (rename / delete)
+  const [renameTarget, setRenameTarget] = useState<SessionWithCount | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SessionWithCount | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
+
+  // Filter (search) + sort diterapkan ke SELURUH data sebelum pagination.
+  const visibleSessions = (() => {
+    const term = searchTerm.trim().toLowerCase();
+    const filtered = term
+      ? sessions.filter((s) => s.title.toLowerCase().includes(term))
+      : sessions;
+    const sorted = [...filtered];
+    sorted.sort((a, b) => {
+      switch (sortKey) {
+        case "oldest":
+          return (
+            (a.createdAt?.toMillis?.() ?? 0) - (b.createdAt?.toMillis?.() ?? 0)
+          );
+        case "az":
+          return a.title.localeCompare(b.title, "id");
+        case "za":
+          return b.title.localeCompare(a.title, "id");
+        case "newest":
+        default:
+          return (
+            (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0)
+          );
+      }
+    });
+    return sorted;
+  })();
+
+  const pageCount = Math.ceil(visibleSessions.length / PAGE_SIZE);
   const pageStart = page * PAGE_SIZE;
-  const pageItems = sessions.slice(pageStart, pageStart + PAGE_SIZE);
+  const pageItems = visibleSessions.slice(pageStart, pageStart + PAGE_SIZE);
+
+  // Reset ke halaman pertama saat filter/sort berubah agar hasil selalu terlihat.
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, sortKey]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -127,6 +176,57 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleRename(newTitle: string) {
+    if (!renameTarget) return;
+    setActionBusy(true);
+    setActionError("");
+    try {
+      await updateDoc(doc(db, "sessions", renameTarget.code), {
+        title: newTitle,
+        updatedAt: Timestamp.now(),
+      });
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.code === renameTarget.code ? { ...s, title: newTitle } : s
+        )
+      );
+      setRenameTarget(null);
+    } catch (err) {
+      console.error("Gagal ubah nama:", err);
+      setActionError("Gagal mengubah nama sesi.");
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function handleDeleteSession() {
+    if (!deleteTarget) return;
+    setActionBusy(true);
+    setActionError("");
+    try {
+      const token = await getIdToken();
+      const res = await fetch("/api/delete-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sessionCode: deleteTarget.code }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setActionError(d.error || "Gagal menghapus sesi.");
+        return;
+      }
+      setSessions((prev) => prev.filter((s) => s.code !== deleteTarget.code));
+      setDeleteTarget(null);
+    } catch {
+      setActionError("Gagal menghapus sesi. Cek koneksi.");
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
   if (authLoading || !user) {
     return (
       <div className="flex-1 grid place-items-center">
@@ -178,16 +278,45 @@ export default function DashboardPage() {
         </Card>
 
         {/* Daftar sesi */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-extrabold text-lg">SESI SAYA</h2>
+        <div className="flex flex-wrap items-center gap-3 justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="font-extrabold text-lg">SESI SAYA</h2>
+            {!loading && sessions.length > 0 && (
+              <Badge color="teal">{sessions.length} SESI</Badge>
+            )}
+          </div>
           {!loading && sessions.length > 0 && (
-            <Badge color="teal">{sessions.length} SESI</Badge>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#1a1a1a]/50">
+                  <Search size={16} strokeWidth={2.5} />
+                </span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Cari sesi..."
+                  className="nb-input pl-8 py-2 text-sm w-40 sm:w-52"
+                />
+              </div>
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as SortKey)}
+                aria-label="Urutkan sesi"
+                className="nb-input py-2 text-sm w-auto font-bold cursor-pointer"
+              >
+                <option value="newest">Terbaru</option>
+                <option value="oldest">Terlama</option>
+                <option value="az">Judul A-Z</option>
+                <option value="za">Judul Z-A</option>
+              </select>
+            </div>
           )}
         </div>
 
-        {error && (
+        {(error || actionError) && (
           <Card color="red" className="p-4 mb-4 font-bold text-sm">
-            {error}
+            {error || actionError}
           </Card>
         )}
 
@@ -203,61 +332,78 @@ export default function DashboardPage() {
               Buat sesi pertama Anda menggunakan form di atas.
             </p>
           </Card>
+        ) : visibleSessions.length === 0 ? (
+          <Card className="p-10 text-center">
+            <p className="font-extrabold text-lg">TIDAK ADA HASIL</p>
+            <p className="font-bold text-[#1a1a1a]/60 mt-1">
+              Tidak ada sesi yang cocok dengan &ldquo;{searchTerm.trim()}&rdquo;.
+            </p>
+          </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {pageItems.map((session, i) => (
-              <a
+              <div
                 key={session.code}
-                href={`/admin/session/${session.code}`}
-                className="nb-card nb-white p-5 block transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5"
+                className="nb-card nb-white relative transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5"
               >
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <span
-                    className="inline-block w-8 h-8 shrink-0 border-[2.5px] border-[#1a1a1a] rounded-[6px]"
-                    style={{
-                      backgroundColor: `var(--color-${
-                        session.published
-                          ? "nb-green"
-                          : CARD_COLORS[(pageStart + i) % CARD_COLORS.length]
-                      })`,
-                    }}
-                    aria-hidden
+                <div className="absolute top-3 right-3 z-10">
+                  <SessionMenu
+                    onRename={() => setRenameTarget(session)}
+                    onDelete={() => setDeleteTarget(session)}
                   />
-                  <Badge color={session.published ? "green" : "white"}>
-                    {session.published ? "PUBLISHED" : "DRAFT"}
-                  </Badge>
                 </div>
+                <a
+                  href={`/admin/session/${session.code}`}
+                  className="block p-5 pr-14"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <span
+                      className="inline-block w-8 h-8 shrink-0 border-[2.5px] border-[#1a1a1a] rounded-[6px]"
+                      style={{
+                        backgroundColor: `var(--color-${
+                          session.published
+                            ? "nb-green"
+                            : CARD_COLORS[(pageStart + i) % CARD_COLORS.length]
+                        })`,
+                      }}
+                      aria-hidden
+                    />
+                    <Badge color={session.published ? "green" : "white"}>
+                      {session.published ? "PUBLISHED" : "DRAFT"}
+                    </Badge>
+                  </div>
 
-                <h3 className="font-extrabold text-lg leading-snug mb-3">
-                  {session.title}
-                </h3>
+                  <h3 className="font-extrabold text-lg leading-snug mb-3">
+                    {session.title}
+                  </h3>
 
-                <div className="flex flex-wrap gap-2 text-xs font-bold">
-                  <span className="border-[2px] border-[#1a1a1a] rounded-[5px] px-2 py-0.5">
-                    {session.questions.length} soal
-                  </span>
-                  <span className="border-[2px] border-[#1a1a1a] rounded-[5px] px-2 py-0.5">
-                    {session.timerSeconds}d/soal
-                  </span>
-                  <span className="border-[2px] border-[#1a1a1a] rounded-[5px] px-2 py-0.5">
-                    {session.attemptCount} peserta
-                  </span>
-                </div>
-
-                {session.published && (
-                  <div className="mt-3 pt-3 border-t-[2.5px] border-[#1a1a1a]/15 flex items-center gap-2">
-                    <span className="text-xs font-bold text-[#1a1a1a]/50">KODE:</span>
-                    <span className="font-mono font-extrabold tracking-widest nb-mustard border-[2px] border-[#1a1a1a] rounded-[5px] px-2">
-                      {session.code}
+                  <div className="flex flex-wrap gap-2 text-xs font-bold">
+                    <span className="border-[2px] border-[#1a1a1a] rounded-[5px] px-2 py-0.5">
+                      {session.questions.length} soal
+                    </span>
+                    <span className="border-[2px] border-[#1a1a1a] rounded-[5px] px-2 py-0.5">
+                      {session.timerSeconds}d/soal
+                    </span>
+                    <span className="border-[2px] border-[#1a1a1a] rounded-[5px] px-2 py-0.5">
+                      {session.attemptCount} peserta
                     </span>
                   </div>
-                )}
-              </a>
+
+                  {session.published && (
+                    <div className="mt-3 pt-3 border-t-[2.5px] border-[#1a1a1a]/15 flex items-center gap-2">
+                      <span className="text-xs font-bold text-[#1a1a1a]/50">KODE:</span>
+                      <span className="font-mono font-extrabold tracking-widest nb-mustard border-[2px] border-[#1a1a1a] rounded-[5px] px-2">
+                        {session.code}
+                      </span>
+                    </div>
+                  )}
+                </a>
+              </div>
             ))}
           </div>
         )}
 
-        {!loading && sessions.length > PAGE_SIZE && (
+        {!loading && visibleSessions.length > PAGE_SIZE && (
           <Pagination
             page={page}
             pageCount={pageCount}
@@ -266,6 +412,35 @@ export default function DashboardPage() {
           />
         )}
       </main>
+
+      {/* Dialog ubah nama sesi */}
+      <PromptDialog
+        open={renameTarget !== null}
+        title="Ubah Nama Sesi"
+        label="Judul sesi"
+        initialValue={renameTarget?.title ?? ""}
+        confirmLabel="Simpan"
+        loading={actionBusy}
+        onConfirm={handleRename}
+        onCancel={() => setRenameTarget(null)}
+      />
+
+      {/* Dialog hapus sesi */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Hapus sesi ini?"
+        message={
+          deleteTarget
+            ? `Hapus sesi "${deleteTarget.title}"? Semua soal dan riwayat pengerjaan (${deleteTarget.attemptCount} attempt) akan ikut terhapus permanen.`
+            : ""
+        }
+        confirmLabel="Ya, Hapus Sesi"
+        confirmColor="red"
+        confirmDelayMs={1000}
+        loading={actionBusy}
+        onConfirm={handleDeleteSession}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </>
   );
 }
