@@ -15,8 +15,12 @@ import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Card } from "@/components/ui/Card";
+import { Pagination } from "@/components/ui/Pagination";
 import { Star } from "@/components/ui/Decor";
-import type { Session, Attempt, Question } from "@/lib/types";
+import type { Session, Attempt } from "@/lib/types";
+
+const OPTION_LABELS = ["A", "B", "C", "D"];
+const PAGE_SIZE = 5;
 
 export default function AttemptsPage() {
   const params = useParams();
@@ -27,6 +31,8 @@ export default function AttemptsPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -69,20 +75,15 @@ export default function AttemptsPage() {
     );
   }
 
-  const questionStats = session?.questions.map((q) => {
-    const answersForQ = attempts.flatMap((a) =>
-      a.answers.filter((ans) => ans.questionId === q.id)
-    );
-    const total = answersForQ.length;
-    const correct = answersForQ.filter((a) => a.correct).length;
-    const timedOut = answersForQ.filter((a) => a.selectedIndex === null).length;
-    const avgTime =
-      total > 0
-        ? answersForQ.reduce((sum, a) => sum + a.timeSpentMs, 0) / total
-        : 0;
+  const pageCount = Math.ceil(attempts.length / PAGE_SIZE);
+  const pageStart = page * PAGE_SIZE;
+  const pageItems = attempts.slice(pageStart, pageStart + PAGE_SIZE);
 
-    return { question: q, total, correct, timedOut, avgTime };
-  });
+  const selected = attempts[selectedIndex];
+  // Breakdown jawaban KHUSUS tim yang sedang dipilih (bukan agregat).
+  const answerByQuestion = new Map(
+    selected?.answers.map((a) => [a.questionId, a]) ?? []
+  );
 
   return (
     <>
@@ -107,117 +108,144 @@ export default function AttemptsPage() {
 
         {/* Rekap peserta */}
         <Card className="p-5 mb-6">
-          <h2 className="font-extrabold text-lg mb-4">REKAP PESERTA</h2>
+          <h2 className="font-extrabold text-lg mb-1">REKAP PESERTA</h2>
+          <p className="text-sm font-bold text-[#1a1a1a]/60 mb-4">
+            Klik baris tim untuk melihat rincian jawabannya di bawah.
+          </p>
 
           {attempts.length === 0 ? (
             <p className="font-bold text-[#1a1a1a]/50 text-center py-6">
               Belum ada peserta yang mengerjakan.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="border-b-[2.5px] border-[#1a1a1a]">
-                    <th className="text-left font-extrabold py-2 pr-4">Tim</th>
-                    <th className="text-center font-extrabold py-2 px-2">Skor</th>
-                    <th className="text-center font-extrabold py-2 px-2">Benar</th>
-                    <th className="text-center font-extrabold py-2 px-2">Salah</th>
-                    <th className="text-center font-extrabold py-2 px-2">Timeout</th>
-                    <th className="text-right font-extrabold py-2 pl-4">Waktu</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attempts.map((attempt, i) => {
-                    const wrong = attempt.answers.filter(
-                      (a) => a.selectedIndex !== null && !a.correct
-                    ).length;
-                    const timedOut = attempt.answers.filter(
-                      (a) => a.selectedIndex === null
-                    ).length;
-                    const completedDate = attempt.completedAt?.toDate?.();
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b-[2.5px] border-[#1a1a1a]">
+                      <th className="text-left font-extrabold py-2 pr-4">Tim</th>
+                      <th className="text-center font-extrabold py-2 px-2">Skor</th>
+                      <th className="text-center font-extrabold py-2 px-2">Benar</th>
+                      <th className="text-center font-extrabold py-2 px-2">Salah</th>
+                      <th className="text-center font-extrabold py-2 px-2">Timeout</th>
+                      <th className="text-right font-extrabold py-2 pl-4">Waktu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageItems.map((attempt, i) => {
+                      const globalIndex = pageStart + i;
+                      const isActive = globalIndex === selectedIndex;
+                      const wrong = attempt.answers.filter(
+                        (a) => a.selectedIndex !== null && !a.correct
+                      ).length;
+                      const timedOut = attempt.answers.filter(
+                        (a) => a.selectedIndex === null
+                      ).length;
+                      const completedDate = attempt.completedAt?.toDate?.();
 
-                    return (
-                      <tr
-                        key={i}
-                        className="border-b-[2px] border-[#1a1a1a]/15"
-                      >
-                        <td className="py-2.5 pr-4 font-extrabold">
-                          {attempt.teamName}
-                        </td>
-                        <td className="text-center py-2.5 px-2 font-extrabold">
-                          {attempt.score}/{attempt.totalQuestions}
-                        </td>
-                        <td className="text-center py-2.5 px-2 font-bold text-[var(--color-nb-green)]">
-                          {attempt.score}
-                        </td>
-                        <td className="text-center py-2.5 px-2 font-bold text-[var(--color-nb-red)]">
-                          {wrong}
-                        </td>
-                        <td className="text-center py-2.5 px-2 font-bold">
-                          {timedOut}
-                        </td>
-                        <td className="text-right py-2.5 pl-4 font-bold text-[#1a1a1a]/60">
-                          {completedDate
-                            ? completedDate.toLocaleString("id-ID", {
-                                day: "2-digit",
-                                month: "short",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
-                            : "-"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr
+                          key={globalIndex}
+                          onClick={() => setSelectedIndex(globalIndex)}
+                          className={`cursor-pointer border-b-[2px] border-[#1a1a1a]/15 transition-colors ${
+                            isActive ? "nb-mustard" : "hover:bg-[#1a1a1a]/5"
+                          }`}
+                        >
+                          <td className="py-2.5 pr-4 font-extrabold">
+                            {isActive && <span className="mr-1">▸</span>}
+                            {attempt.teamName}
+                          </td>
+                          <td className="text-center py-2.5 px-2 font-extrabold">
+                            {attempt.score}/{attempt.totalQuestions}
+                          </td>
+                          <td className="text-center py-2.5 px-2 font-bold text-[var(--color-nb-green)]">
+                            {attempt.score}
+                          </td>
+                          <td className="text-center py-2.5 px-2 font-bold text-[var(--color-nb-red)]">
+                            {wrong}
+                          </td>
+                          <td className="text-center py-2.5 px-2 font-bold">
+                            {timedOut}
+                          </td>
+                          <td className="text-right py-2.5 pl-4 font-bold text-[#1a1a1a]/60">
+                            {completedDate
+                              ? completedDate.toLocaleString("id-ID", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {attempts.length > PAGE_SIZE && (
+                <Pagination
+                  page={page}
+                  pageCount={pageCount}
+                  onChange={setPage}
+                  className="mt-5"
+                />
+              )}
+            </>
           )}
         </Card>
 
-        {/* Statistik per soal */}
-        {questionStats && questionStats.length > 0 && attempts.length > 0 && (
+        {/* Rincian jawaban tim terpilih */}
+        {selected && session && (
           <Card className="p-5">
-            <h2 className="font-extrabold text-lg mb-4">STATISTIK PER SOAL</h2>
+            <h2 className="font-extrabold text-lg mb-1">
+              RINCIAN JAWABAN
+            </h2>
+            <p className="text-sm font-bold text-[#1a1a1a]/60 mb-4">
+              Tim: <span className="nb-badge nb-mustard">{selected.teamName}</span>{" "}
+              &middot; Skor {selected.score}/{selected.totalQuestions}
+            </p>
+
             <div className="space-y-3">
-              {questionStats.map((stat, i) => {
-                const correctPct =
-                  stat.total > 0
-                    ? Math.round((stat.correct / stat.total) * 100)
-                    : 0;
-                const barColor =
-                  correctPct >= 70
-                    ? "var(--color-nb-green)"
-                    : correctPct >= 40
-                      ? "var(--color-mustard)"
-                      : "var(--color-nb-red)";
+              {session.questions.map((q, i) => {
+                const ans = answerByQuestion.get(q.id);
+                const timedOut = !ans || ans.selectedIndex === null;
+                const isCorrect = ans?.correct ?? false;
 
                 return (
                   <div
-                    key={stat.question.id}
-                    className="border-[2.5px] border-[#1a1a1a] rounded-[6px] p-3"
+                    key={q.id}
+                    className={`border-[2.5px] border-[#1a1a1a] rounded-[6px] p-3 ${
+                      isCorrect ? "nb-green" : "nb-red"
+                    }`}
                   >
-                    <div className="flex justify-between items-start gap-3 mb-1">
-                      <p className="text-sm font-bold flex-1">
-                        {i + 1}. {stat.question.text}
+                    <div className="flex justify-between items-start gap-3 mb-2">
+                      <p className="text-sm font-extrabold flex-1">
+                        {i + 1}. {q.text}
                       </p>
-                      <span className="text-sm font-extrabold">{correctPct}%</span>
-                    </div>
-                    <div className="flex gap-4 text-xs font-bold text-[#1a1a1a]/60 mb-2">
-                      <span>
-                        Benar: {stat.correct}/{stat.total}
+                      <span className="nb-badge nb-white shrink-0">
+                        {isCorrect ? "BENAR" : timedOut ? "TIMEOUT" : "SALAH"}
                       </span>
-                      <span>Timeout: {stat.timedOut}</span>
-                      <span>Rata-rata: {(stat.avgTime / 1000).toFixed(1)}d</span>
                     </div>
-                    <div className="h-3 border-[2px] border-[#1a1a1a] rounded-[5px] overflow-hidden bg-white">
-                      <div
-                        className="h-full"
-                        style={{
-                          width: `${correctPct}%`,
-                          backgroundColor: barColor,
-                        }}
-                      />
+                    <div className="text-xs font-bold space-y-0.5">
+                      <p>
+                        Jawaban tim:{" "}
+                        {timedOut
+                          ? "— (tidak dijawab)"
+                          : `${OPTION_LABELS[ans!.selectedIndex!]}. ${
+                              q.options[ans!.selectedIndex!]
+                            }`}
+                      </p>
+                      <p>
+                        Jawaban benar:{" "}
+                        {`${OPTION_LABELS[q.correctIndex]}. ${q.options[q.correctIndex]}`}
+                      </p>
+                      <p className="text-[#1a1a1a]/60">
+                        {timedOut
+                          ? "Waktu habis"
+                          : `Dijawab dalam ${(ans!.timeSpentMs / 1000).toFixed(1)} detik`}
+                      </p>
                     </div>
                   </div>
                 );

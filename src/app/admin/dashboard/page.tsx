@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Star, Dot, Square } from "@/components/ui/Decor";
+import { Pagination } from "@/components/ui/Pagination";
 import { generateSessionCode } from "@/lib/utils";
 import type { Session } from "@/lib/types";
 
@@ -28,6 +29,7 @@ interface SessionWithCount extends Session {
 
 // Rotasi warna aksen kartu supaya dashboard terasa "hidup"
 const CARD_COLORS = ["mustard", "teal", "pink", "purple"] as const;
+const PAGE_SIZE = 10;
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -37,6 +39,11 @@ export default function DashboardPage() {
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [error, setError] = useState("");
+  const [page, setPage] = useState(0);
+
+  const pageCount = Math.ceil(sessions.length / PAGE_SIZE);
+  const pageStart = page * PAGE_SIZE;
+  const pageItems = sessions.slice(pageStart, pageStart + PAGE_SIZE);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -198,7 +205,7 @@ export default function DashboardPage() {
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {sessions.map((session, i) => (
+            {pageItems.map((session, i) => (
               <a
                 key={session.code}
                 href={`/admin/session/${session.code}`}
@@ -209,7 +216,9 @@ export default function DashboardPage() {
                     className="inline-block w-8 h-8 shrink-0 border-[2.5px] border-[#1a1a1a] rounded-[6px]"
                     style={{
                       backgroundColor: `var(--color-${
-                        session.published ? "nb-green" : CARD_COLORS[i % CARD_COLORS.length]
+                        session.published
+                          ? "nb-green"
+                          : CARD_COLORS[(pageStart + i) % CARD_COLORS.length]
                       })`,
                     }}
                     aria-hidden
@@ -246,6 +255,15 @@ export default function DashboardPage() {
               </a>
             ))}
           </div>
+        )}
+
+        {!loading && sessions.length > PAGE_SIZE && (
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            onChange={setPage}
+            className="mt-6"
+          />
         )}
       </main>
     </>
