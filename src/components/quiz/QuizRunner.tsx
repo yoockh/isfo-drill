@@ -2,12 +2,19 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { Sparkles } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useQuiz } from "@/hooks/useQuiz";
 import { useCountdown } from "@/hooks/useCountdown";
 import { Timer } from "@/components/ui/Timer";
 import { Button } from "@/components/ui/Button";
 import type { Question, Attempt } from "@/lib/types";
+
+interface ExplanationState {
+  loading: boolean;
+  text?: string;
+  error?: string;
+}
 
 interface QuizRunnerProps {
   questions: Question[];
@@ -28,6 +35,7 @@ export function QuizRunner({
   const countdown = useCountdown(timerSeconds, quiz.phase === "answering");
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({});
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timeoutHandledRef = useRef(false);
 
@@ -90,6 +98,41 @@ export function QuizRunner({
     if (quiz.phase !== "answering") return;
     quiz.answer(index, countdown.elapsed);
   };
+
+  async function fetchExplanation(q: Question, selectedIndex: number) {
+    setExplanations((prev) => ({ ...prev, [q.id]: { loading: true } }));
+    try {
+      const res = await fetch("/api/explain-answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionCode,
+          questionId: q.id,
+          question: q.text,
+          options: q.options,
+          correctIndex: q.correctIndex,
+          selectedIndex,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setExplanations((prev) => ({
+          ...prev,
+          [q.id]: { loading: false, error: data.error || "Gagal memuat pembahasan" },
+        }));
+        return;
+      }
+      setExplanations((prev) => ({
+        ...prev,
+        [q.id]: { loading: false, text: data.explanation },
+      }));
+    } catch {
+      setExplanations((prev) => ({
+        ...prev,
+        [q.id]: { loading: false, error: "Gagal memuat pembahasan. Cek koneksi." },
+      }));
+    }
+  }
 
   /* ---------- Layar SIAP ---------- */
   if (quiz.phase === "ready") {
@@ -195,6 +238,45 @@ export function QuizRunner({
                       ? "Waktu habis"
                       : `Dijawab dalam ${(ans.timeSpentMs / 1000).toFixed(1)} detik`}
                   </p>
+
+                  {/* Pembahasan AI — hanya untuk soal yang dijawab salah */}
+                  {!isCorrect && !timedOut && (
+                    <div className="mt-3">
+                      {(() => {
+                        const ex = explanations[q.id];
+                        if (ex?.text) {
+                          return (
+                            <div className="nb-card nb-purple p-3">
+                              <p className="text-xs font-extrabold uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                                <Sparkles size={14} strokeWidth={2.5} /> Pembahasan
+                              </p>
+                              <p className="text-sm font-bold leading-snug">{ex.text}</p>
+                            </div>
+                          );
+                        }
+                        if (ex?.error) {
+                          return (
+                            <button
+                              onClick={() => fetchExplanation(q, ans.selectedIndex!)}
+                              className="nb-btn nb-white text-xs py-2 px-3"
+                            >
+                              {ex.error} — Coba lagi
+                            </button>
+                          );
+                        }
+                        return (
+                          <button
+                            onClick={() => fetchExplanation(q, ans.selectedIndex!)}
+                            disabled={ex?.loading}
+                            className="nb-btn nb-purple text-xs py-2 px-3"
+                          >
+                            <Sparkles size={14} strokeWidth={2.5} />
+                            {ex?.loading ? "Memuat pembahasan..." : "Lihat Pembahasan"}
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               );
             })}

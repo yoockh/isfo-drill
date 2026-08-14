@@ -83,3 +83,53 @@ Variasikan tingkat kesulitan: mudah, sedang, dan sulit.`,
     correctIndex: number;
   }>;
 }
+
+/*
+  Pembahasan singkat untuk soal yang dijawab salah. Output teks biasa (bukan
+  structured JSON) — lebih murah & cepat. Model sama: openai/gpt-oss-120b.
+*/
+export async function generateExplanation(input: {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  selectedIndex: number;
+}): Promise<string> {
+  const groq = getGroq();
+  const { question, options, correctIndex, selectedIndex } = input;
+
+  const labels = ["A", "B", "C", "D"];
+  const optionsText = options
+    .map((o, i) => `${labels[i]}. ${o}`)
+    .join("\n");
+
+  const response = await groq.chat.completions.create({
+    model: "openai/gpt-oss-120b",
+    messages: [
+      {
+        role: "system",
+        content: `Kamu tutor keuangan syariah untuk siswa SMA (kompetisi ISFO).
+Jelaskan secara singkat, jelas, dan edukatif dalam Bahasa Indonesia (2-4 kalimat).
+Fokus: kenapa jawaban siswa keliru dan kenapa jawaban benar itu tepat.
+Jangan mengulang seluruh soal, langsung ke inti konsepnya. Tanpa basa-basi pembuka.`,
+      },
+      {
+        role: "user",
+        content: `Soal: ${question}
+Pilihan:
+${optionsText}
+Jawaban siswa (salah): ${labels[selectedIndex]}. ${options[selectedIndex]}
+Jawaban benar: ${labels[correctIndex]}. ${options[correctIndex]}
+
+Tulis pembahasan singkatnya.`,
+      },
+    ],
+    temperature: 0.5,
+    max_tokens: 400,
+  });
+
+  const content = response.choices[0]?.message?.content?.trim();
+  if (!content) {
+    throw new Error("Groq tidak mengembalikan pembahasan");
+  }
+  return content;
+}
