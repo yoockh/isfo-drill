@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase/client";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Star, Dot, Square } from "@/components/ui/Decor";
+import { Logo } from "@/components/Logo";
 
 export default function HomePage() {
   const [code, setCode] = useState("");
@@ -60,8 +61,8 @@ export default function HomePage() {
 
       <div className="w-full max-w-md relative">
         <div className="text-center mb-7">
-          <div className="inline-grid place-items-center w-16 h-16 bg-[var(--color-mustard)] border-[3px] border-[#1a1a1a] rounded-[8px] shadow-[5px_5px_0_0_#1a1a1a] text-3xl font-extrabold mb-4 rotate-[-4deg]">
-            i
+          <div className="inline-block mb-4 rotate-[-4deg] shadow-[5px_5px_0_0_#1a1a1a] rounded-[7px]">
+            <Logo size={64} />
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight">ISFO DRILL</h1>
           <p className="font-bold text-[#1a1a1a]/70 mt-1">

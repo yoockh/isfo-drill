@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LoginForm } from "@/components/admin/LoginForm";
 import { Card } from "@/components/ui/Card";
 import { Star, Dot, Square } from "@/components/ui/Decor";
+import { Logo } from "@/components/Logo";
 
 export default function AdminLoginPage() {
   const { user, loading } = useAuth();
@@ -35,8 +36,8 @@ export default function AdminLoginPage() {
 
       <div className="w-full max-w-sm relative">
         <div className="text-center mb-7">
-          <div className="inline-grid place-items-center w-16 h-16 bg-[var(--color-teal)] border-[3px] border-[#1a1a1a] rounded-[8px] shadow-[5px_5px_0_0_#1a1a1a] text-3xl font-extrabold mb-4 rotate-[-4deg]">
-            i
+          <div className="inline-block mb-4 rotate-[-4deg] shadow-[5px_5px_0_0_#1a1a1a] rounded-[7px]">
+            <Logo size={64} />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">PANEL GURU</h1>
           <p className="font-bold text-[#1a1a1a]/70 mt-1">
