@@ -9,11 +9,12 @@ import {
   type App,
   type ServiceAccount,
 } from "firebase-admin/app";
-import { getAuth, type Auth } from "firebase-admin/auth";
+// CATATAN: firebase-admin/auth SENGAJA TIDAK di-import di sini karena menarik
+// jwks-rsa -> require('jose') (ESM-only) -> ERR_REQUIRE_ESM di Vercel.
+// Verifikasi ID token dilakukan manual via jose di lib/firebase/verifyToken.ts.
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 let _app: App | null = null;
-let _auth: Auth | null = null;
 let _db: Firestore | null = null;
 
 function getAdminApp(): App {
@@ -32,13 +33,6 @@ function getAdminApp(): App {
   _app = initializeApp({ credential: cert(serviceAccount) });
   return _app;
 }
-
-export const adminAuth: Auth = new Proxy({} as Auth, {
-  get(_, prop) {
-    if (!_auth) _auth = getAuth(getAdminApp());
-    return (_auth as unknown as Record<string | symbol, unknown>)[prop];
-  },
-});
 
 export const adminDb: Firestore = new Proxy({} as Firestore, {
   get(_, prop) {

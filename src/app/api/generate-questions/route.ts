@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebase/admin";
+import { verifyFirebaseIdToken } from "@/lib/firebase/verifyToken";
 import { generateQuestions } from "@/lib/groq";
 import { checkRateLimit } from "@/lib/ratelimit";
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const idToken = authHeader.split("Bearer ")[1];
     let uid: string;
     try {
-      const decoded = await adminAuth.verifyIdToken(idToken);
+      const decoded = await verifyFirebaseIdToken(idToken);
       uid = decoded.uid;
     } catch {
       return NextResponse.json(
