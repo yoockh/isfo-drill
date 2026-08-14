@@ -1,3 +1,7 @@
+// Tandai modul ini server-only: Firebase Admin SDK tidak boleh ikut ke
+// bundle client. Import ini akan error saat build jika modul terbawa ke sisi
+// client, sekaligus menjadi dokumentasi eksplisit batas server/client.
+import "server-only";
 import {
   initializeApp,
   getApps,
