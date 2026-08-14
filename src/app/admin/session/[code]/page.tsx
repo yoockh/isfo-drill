@@ -278,15 +278,21 @@ export default function SessionDetailPage() {
             placeholder="Paste materi teks mentah di sini..."
             className="nb-input resize-y text-sm"
           />
+          <div className="flex justify-between items-center text-xs font-bold text-[#1a1a1a]/60 mt-1 px-1">
+            <span>Maksimal 40.000 karakter</span>
+            <span className={rawMaterial.length > 40000 ? "text-[#e85d04]" : ""}>
+              {rawMaterial.length.toLocaleString()} / 40.000 karakter
+            </span>
+          </div>
           <div className="flex flex-wrap items-end gap-4 mt-4">
             <div>
               <label className="block text-sm font-extrabold uppercase tracking-wide mb-1.5">
-                Jumlah soal
+                Jumlah soal (1-60)
               </label>
               <input
                 type="number"
                 min={1}
-                max={30}
+                max={60}
                 value={questionCount}
                 onChange={(e) => setQuestionCount(Number(e.target.value))}
                 className="nb-input w-24"

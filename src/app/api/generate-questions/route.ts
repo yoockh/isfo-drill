@@ -5,9 +5,9 @@ import { checkRateLimit } from "@/lib/ratelimit";
 
 export const maxDuration = 30;
 
-// Batas input untuk mencegah pemborosan token/kuota dalam satu request.
-const MAX_MATERIAL_CHARS = 8000;
-const MAX_QUESTIONS = 30;
+// Batas input materi & soal (Groq context window luas, batching otomatis untuk > 30 soal)
+const MAX_MATERIAL_CHARS = 40000;
+const MAX_QUESTIONS = 60;
 // Penggunaan wajar: guru tidak generate soal berkali-kali dalam semenit.
 const RATE_LIMIT_PER_MIN = 5;
 

@@ -9,9 +9,9 @@ function getGroq() {
   return _groq;
 }
 
-export async function generateQuestions(
+async function generateQuestionBatch(
   material: string,
-  count: number = 10
+  count: number
 ) {
   const groq = getGroq();
   const response = await groq.chat.completions.create({
@@ -82,6 +82,26 @@ Variasikan tingkat kesulitan: mudah, sedang, dan sulit.`,
     options: string[];
     correctIndex: number;
   }>;
+}
+
+export async function generateQuestions(
+  material: string,
+  count: number = 10
+) {
+  // Jika permintaan > 30 soal, bagi secara paralel untuk menghindari batas max_tokens & timeout.
+  if (count > 30) {
+    const batch1Count = Math.ceil(count / 2);
+    const batch2Count = Math.floor(count / 2);
+
+    const [batch1, batch2] = await Promise.all([
+      generateQuestionBatch(material, batch1Count),
+      generateQuestionBatch(material, batch2Count),
+    ]);
+
+    return [...batch1, ...batch2];
+  }
+
+  return generateQuestionBatch(material, count);
 }
 
 /*
