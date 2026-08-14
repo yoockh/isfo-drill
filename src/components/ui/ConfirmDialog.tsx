@@ -13,6 +13,8 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   confirmColor?: NbColor;
   loading?: boolean;
+  /** Tunda aktifnya tombol konfirmasi (ms) untuk cegah klik tak sengaja. */
+  confirmDelayMs?: number;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -30,11 +32,13 @@ export function ConfirmDialog({
   cancelLabel = "Batal",
   confirmColor = "red",
   loading = false,
+  confirmDelayMs = 0,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   const [mounted, setMounted] = useState(false);
   const [show, setShow] = useState(false);
+  const [delayPassed, setDelayPassed] = useState(confirmDelayMs === 0);
 
   // Mount saat open, lalu unmount setelah animasi keluar selesai.
   useEffect(() => {
@@ -48,6 +52,18 @@ export function ConfirmDialog({
       return () => clearTimeout(t);
     }
   }, [open]);
+
+  // Tunda aktifnya tombol konfirmasi setiap kali dialog dibuka.
+  useEffect(() => {
+    if (!open) return;
+    if (confirmDelayMs === 0) {
+      setDelayPassed(true);
+      return;
+    }
+    setDelayPassed(false);
+    const t = setTimeout(() => setDelayPassed(true), confirmDelayMs);
+    return () => clearTimeout(t);
+  }, [open, confirmDelayMs]);
 
   // Tutup dengan tombol Escape.
   useEffect(() => {
@@ -98,10 +114,10 @@ export function ConfirmDialog({
           <Button
             color={confirmColor}
             onClick={onConfirm}
-            disabled={loading}
+            disabled={loading || !delayPassed}
             className="flex-1"
           >
-            {loading ? "..." : confirmLabel}
+            {loading ? "..." : !delayPassed ? "Tunggu…" : confirmLabel}
           </Button>
         </div>
       </div>
