@@ -228,7 +228,7 @@ export function QuizRunner({
                           }`}
                         >
                           {OPTION_LABELS[oi]}. {opt}
-                          {correct && " ✓"}
+                          {correct && <span className="font-extrabold text-[var(--color-nb-green,#2ec4b6)] ml-1.5">(Benar)</span>}
                         </div>
                       );
                     })}

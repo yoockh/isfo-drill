@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { generateQuestionId } from "@/lib/utils";
+import { MergeQuestionsDialog } from "@/components/admin/MergeQuestionsDialog";
+import { generateQuestionId, shuffleArray } from "@/lib/utils";
+import { Shuffle, Layers, Sparkles } from "lucide-react";
 import type { Session, Question } from "@/lib/types";
 
 export default function SessionDetailPage() {
@@ -32,6 +34,8 @@ export default function SessionDetailPage() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [shuffleOpen, setShuffleOpen] = useState(false);
 
   function notify(text: string, error = false) {
     setMessage(text);
@@ -117,6 +121,20 @@ export default function SessionDetailPage() {
     } finally {
       setGenerating(false);
     }
+  }
+
+  function handleMergeQuestions(mergedQuestions: Question[]) {
+    setQuestions((prev) => [...prev, ...mergedQuestions]);
+    notify(`Berhasil menggabungkan ${mergedQuestions.length} soal dari sesi lain! Jangan lupa Simpan.`);
+  }
+
+  function handleShuffleQuestions() {
+    if (questions.length <= 1) {
+      notify("Minimal ada 2 soal untuk diacak.", true);
+      return;
+    }
+    setQuestions((prev) => shuffleArray(prev));
+    notify(`Urutan ${questions.length} soal berhasil diacak! Jangan lupa Simpan.`);
   }
 
   async function handleSave() {
@@ -284,7 +302,7 @@ export default function SessionDetailPage() {
               {rawMaterial.length.toLocaleString()} / 40.000 karakter
             </span>
           </div>
-          <div className="flex flex-wrap items-end gap-4 mt-4">
+          <div className="flex flex-wrap items-end gap-3 mt-4">
             <div>
               <label className="block text-sm font-extrabold uppercase tracking-wide mb-1.5">
                 Jumlah soal (1-60)
@@ -300,16 +318,29 @@ export default function SessionDetailPage() {
             </div>
 
             {questions.length === 0 ? (
-              // Sesi masih kosong: satu tombol generate dari nol.
-              <Button
-                color="mustard"
-                onClick={() => handleGenerate("append")}
-                disabled={generating || !rawMaterial.trim()}
-              >
-                {generating ? "Generating..." : "⚡ Generate Draft Soal"}
-              </Button>
+              // Sesi masih kosong: tombol generate dari materi & tombol gabungkan soal dari sesi lain.
+              <>
+                <Button
+                  color="mustard"
+                  onClick={() => handleGenerate("append")}
+                  disabled={generating || !rawMaterial.trim()}
+                  className="flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{generating ? "Generating..." : "Generate Draft Soal"}</span>
+                </Button>
+                <Button
+                  color="white"
+                  onClick={() => setMergeOpen(true)}
+                  disabled={generating}
+                  className="flex items-center gap-1.5"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>Gabungkan Soal dari Sesi Lain</span>
+                </Button>
+              </>
             ) : (
-              // Sesi sudah punya soal: dua aksi terpisah.
+              // Sesi sudah punya soal: tambah baru, acak soal, generate ulang, atau gabungkan soal lagi.
               <>
                 <Button
                   color="purple"
@@ -317,6 +348,24 @@ export default function SessionDetailPage() {
                   disabled={generating || !rawMaterial.trim()}
                 >
                   {generating ? "Memproses..." : "+ Tambah Soal Baru"}
+                </Button>
+                <Button
+                  color="teal"
+                  onClick={() => setShuffleOpen(true)}
+                  disabled={generating}
+                  className="flex items-center gap-1.5"
+                >
+                  <Shuffle className="w-4 h-4" />
+                  <span>Acak Soal</span>
+                </Button>
+                <Button
+                  color="white"
+                  onClick={() => setMergeOpen(true)}
+                  disabled={generating}
+                  className="flex items-center gap-1.5"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>Gabungkan Soal</span>
                 </Button>
                 <Button
                   color="red"
@@ -331,7 +380,8 @@ export default function SessionDetailPage() {
 
           {questions.length > 0 && (
             <p className="text-xs font-bold text-[#1a1a1a]/60 mt-3">
-              &ldquo;+ Tambah Soal Baru&rdquo; menambah soal di bawah yang sudah ada.
+              &ldquo;+ Tambah Soal Baru&rdquo; menambah draft di bawah.
+              &ldquo;Acak Soal&rdquo; mengocok urutan {questions.length} soal.
               &ldquo;Generate Ulang Semua&rdquo; mengganti seluruh {questions.length} soal.
               {session.published && (
                 <span className="text-[var(--color-nb-red)]">
@@ -379,7 +429,7 @@ export default function SessionDetailPage() {
             <Card className="p-10 text-center">
               <p className="font-extrabold text-lg">BELUM ADA SOAL</p>
               <p className="font-bold text-[#1a1a1a]/60 mt-1">
-                Generate dari materi di atas atau tambahkan manual.
+                Generate dari materi di atas, gabungkan dari sesi lain, atau tambahkan manual.
               </p>
             </Card>
           ) : (
@@ -449,6 +499,30 @@ export default function SessionDetailPage() {
         }}
         onCancel={() => setRegenOpen(false)}
       />
+
+      <ConfirmDialog
+        open={shuffleOpen}
+        title="Acak urutan soal?"
+        message={`Urutan seluruh ${questions.length} soal akan diacak secara random. Anda tetap bisa mengedit atau mengacaknya kembali.`}
+        confirmLabel="Ya, Acak Soal"
+        cancelLabel="Batal"
+        confirmColor="teal"
+        onConfirm={() => {
+          handleShuffleQuestions();
+          setShuffleOpen(false);
+        }}
+        onCancel={() => setShuffleOpen(false)}
+      />
+
+      {user && (
+        <MergeQuestionsDialog
+          open={mergeOpen}
+          currentCode={code}
+          creatorUid={user.uid}
+          onMerge={handleMergeQuestions}
+          onClose={() => setMergeOpen(false)}
+        />
+      )}
     </>
   );
 }
