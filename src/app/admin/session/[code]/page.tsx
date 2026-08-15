@@ -340,7 +340,7 @@ export default function SessionDetailPage() {
                 </Button>
               </>
             ) : (
-              // Sesi sudah punya soal: tambah baru, acak soal, generate ulang, atau gabungkan soal lagi.
+              // Sesi sudah punya soal: tambah baru, acak soal, generate ulang.
               <>
                 <Button
                   color="purple"
@@ -357,15 +357,6 @@ export default function SessionDetailPage() {
                 >
                   <Shuffle className="w-4 h-4" />
                   <span>Acak Soal</span>
-                </Button>
-                <Button
-                  color="white"
-                  onClick={() => setMergeOpen(true)}
-                  disabled={generating}
-                  className="flex items-center gap-1.5"
-                >
-                  <Layers className="w-4 h-4" />
-                  <span>Gabungkan Soal</span>
                 </Button>
                 <Button
                   color="red"
