@@ -22,15 +22,21 @@ async function generateQuestionBatch(
     messages: [
       {
         role: "system",
-        content: `Kamu adalah pembuat soal cerdas cermat keuangan syariah untuk kompetisi ISFO tingkat SMA.
-Buat soal pilihan ganda berdasarkan materi yang diberikan.
-Setiap soal harus memiliki tepat 4 pilihan jawaban dengan satu jawaban benar.
-Soal harus dalam Bahasa Indonesia, jelas, dan menguji pemahaman konsep, bukan hafalan semata.
-Variasikan tingkat kesulitan: mudah, sedang, dan sulit.`,
+        content: `Kamu adalah pembuat soal cerdas cermat keuangan syariah dan fikih muamalah untuk kompetisi ISFO tingkat SMA.
+Tugasmu adalah membuat soal pilihan ganda bermutu tinggi berdasarkan materi yang diberikan.
+
+PANDUAN PEMBUATAN SOAL:
+1. Setiap soal memiliki tepat 4 pilihan jawaban (opsi A, B, C, D) dengan HANYA SATU jawaban benar.
+2. Tingkat kesulitan bervariasi (mudah, sedang, dan sulit/analisis).
+3. EKSPLORASI DALIL ARAB & AYAT/HADIS:
+   - Jika materi sumber mengandung ayat Al-Qur'an, hadis Nabi, kaidah fikih, atau istilah berbahasa Arab, KAMU SANGAT DIANJURKAN DAN WAJIB membuat soal yang mencantumkan teks Arab aslinya secara langsung (misal potongan ayat/hadis dalam aksara Arab).
+   - Bentuk soal berdalil Arab bisa berupa: menguji pemahaman makna dalil terhadap akad/transaksi syariah, menentukan dasar hukum dari ayat/hadis yang ditampilkan, atau mengaitkan kaidah fikih Arab dengan kasus muamalah modern.
+   - Tulis teks Arab dengan jelas dan rapi (boleh berharakat sesuai materi).
+4. Bahasa pengantar soal adalah Bahasa Indonesia yang baku, jelas, dan tidak ambigu.`,
       },
       {
         role: "user",
-        content: `Buat ${count} soal pilihan ganda dari materi berikut:\n\n${material}`,
+        content: `Buat ${count} soal pilihan ganda dari materi berikut. Jika ada ayat Al-Qur'an, hadis, atau istilah/kaidah berbahasa Arab di dalam materi, pastikan kamu membuat soal yang memuat teks Arab tersebut:\n\n${material}`,
       },
     ],
     response_format: {
