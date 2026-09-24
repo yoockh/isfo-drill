@@ -22,11 +22,12 @@ import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Star } from "@/components/ui/Decor";
+import { RichText } from "@/components/ui/RichText";
+import { optionLabel } from "@/lib/utils";
 import type { Session, Attempt } from "@/lib/types";
 
 type AttemptWithId = Attempt & { id: string };
 
-const OPTION_LABELS = ["A", "B", "C", "D"];
 const PAGE_SIZE = 5;
 
 export default function AttemptsPage() {
@@ -383,7 +384,7 @@ export default function AttemptsPage() {
                   >
                     <div className="flex justify-between items-start gap-3 mb-2">
                       <p className="text-sm font-extrabold flex-1">
-                        {i + 1}. {q.text}
+                        {i + 1}. <RichText>{q.text}</RichText>
                       </p>
                       <span className="nb-badge nb-white shrink-0">
                         {isCorrect ? "BENAR" : timedOut ? "TIMEOUT" : "SALAH"}
@@ -392,15 +393,18 @@ export default function AttemptsPage() {
                     <div className="text-xs font-bold space-y-0.5">
                       <p>
                         Jawaban tim:{" "}
-                        {timedOut
-                          ? "— (tidak dijawab)"
-                          : `${OPTION_LABELS[ans!.selectedIndex!]}. ${
-                              q.options[ans!.selectedIndex!]
-                            }`}
+                        {timedOut ? (
+                          "— (tidak dijawab)"
+                        ) : (
+                          <>
+                            {optionLabel(ans!.selectedIndex!)}.{" "}
+                            <RichText>{q.options[ans!.selectedIndex!]}</RichText>
+                          </>
+                        )}
                       </p>
                       <p>
-                        Jawaban benar:{" "}
-                        {`${OPTION_LABELS[q.correctIndex]}. ${q.options[q.correctIndex]}`}
+                        Jawaban benar: {optionLabel(q.correctIndex)}.{" "}
+                        <RichText>{q.options[q.correctIndex]}</RichText>
                       </p>
                       <p className="text-[#1a1a1a]/60">
                         {timedOut

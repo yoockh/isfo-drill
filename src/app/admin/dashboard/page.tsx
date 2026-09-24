@@ -251,7 +251,7 @@ export default function DashboardPage() {
         <div className="mb-6 relative">
           <h1 className="text-3xl font-extrabold tracking-tight">DASHBOARD GURU</h1>
           <p className="font-bold text-[#1a1a1a]/70 mt-1">
-            Kelola sesi latihan cerdas cermat keuangan syariah.
+            Kelola sesi latihan soal untuk semua bidang.
           </p>
         </div>
 
@@ -266,7 +266,7 @@ export default function DashboardPage() {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Judul sesi, contoh: Bab 1 — Prinsip Syariah"
+              placeholder="Judul sesi, contoh: Fisika — Kinematika"
               required
               className="nb-input flex-1"
             />

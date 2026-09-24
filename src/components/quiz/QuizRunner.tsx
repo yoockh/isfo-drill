@@ -8,6 +8,8 @@ import { useQuiz } from "@/hooks/useQuiz";
 import { useCountdown } from "@/hooks/useCountdown";
 import { Timer } from "@/components/ui/Timer";
 import { Button } from "@/components/ui/Button";
+import { RichText } from "@/components/ui/RichText";
+import { optionLabel } from "@/lib/utils";
 import type { Question, Attempt } from "@/lib/types";
 
 interface ExplanationState {
@@ -22,8 +24,6 @@ interface QuizRunnerProps {
   sessionCode: string;
   teamName: string;
 }
-
-const OPTION_LABELS = ["A", "B", "C", "D"];
 
 export function QuizRunner({
   questions,
@@ -210,7 +210,7 @@ export function QuizRunner({
                   className={`nb-card p-4 ${isCorrect ? "nb-green" : "nb-red"}`}
                 >
                   <p className="font-extrabold mb-2">
-                    {i + 1}. {q.text}
+                    {i + 1}. <RichText>{q.text}</RichText>
                   </p>
                   <div className="space-y-1 text-sm mb-2">
                     {q.options.map((opt, oi) => {
@@ -227,7 +227,7 @@ export function QuizRunner({
                                 : "opacity-60"
                           }`}
                         >
-                          {OPTION_LABELS[oi]}. {opt}
+                          {optionLabel(oi)}. <RichText>{opt}</RichText>
                           {correct && <span className="font-extrabold text-[var(--color-nb-green,#2ec4b6)] ml-1.5">(Benar)</span>}
                         </div>
                       );
@@ -320,7 +320,7 @@ export function QuizRunner({
       {/* Konten soal */}
       <div className="flex-1 flex flex-col px-4 py-6 max-w-lg mx-auto w-full">
         <p className="text-xl sm:text-2xl font-extrabold leading-snug mb-6">
-          {q.text}
+          <RichText>{q.text}</RichText>
         </p>
 
         <div className="grid gap-3 mt-auto">
@@ -347,9 +347,9 @@ export function QuizRunner({
                 className={`nb-btn ${colorClass} ${dim} w-full justify-start text-left text-base py-4`}
               >
                 <span className="shrink-0 grid place-items-center w-8 h-8 border-[2.5px] border-[#1a1a1a] rounded-[6px] bg-white/70 text-sm font-extrabold">
-                  {OPTION_LABELS[index]}
+                  {optionLabel(index)}
                 </span>
-                <span>{option}</span>
+                <span><RichText>{option}</RichText></span>
               </button>
             );
           })}

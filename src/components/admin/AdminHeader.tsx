@@ -27,7 +27,7 @@ export function AdminHeader() {
         <a href="/admin/dashboard" className="flex items-center gap-2.5">
           <Logo size={36} color="#ffffff" />
           <span className="font-extrabold text-lg text-[#1a1a1a] tracking-tight">
-            ISFO DRILL
+            DRILLKU
           </span>
           <span className="hidden sm:inline text-xs font-bold text-[#1a1a1a]/70 border-l-[2.5px] border-[#1a1a1a] pl-2.5">
             PANEL GURU

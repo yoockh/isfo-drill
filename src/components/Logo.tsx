@@ -1,9 +1,9 @@
 /*
-  Logo ISFO Drill — SVG inline, neo-brutalism.
+  Logo DrillKu — SVG inline, neo-brutalism.
   Konsep: kotak badge tegas (border tebal) berisi kilat/bolt (kecepatan &
   ketangkasan menjawab) yang sekaligus membentuk garis grafik naik ke kanan
-  (pertumbuhan / edukasi keuangan) — nuansa profesional-edukatif tanpa
-  simbol religius eksplisit. Warna utama teal (identitas navbar).
+  (pertumbuhan / progres belajar) — nuansa profesional-edukatif dan netral
+  lintas bidang. Warna utama teal (identitas navbar).
 */
 
 interface LogoProps {
@@ -21,7 +21,7 @@ export function Logo({ size = 36, className = "", color = "var(--color-teal)" }:
       viewBox="0 0 40 40"
       className={className}
       role="img"
-      aria-label="ISFO Drill"
+      aria-label="DrillKu"
       fill="none"
     >
       {/* Badge container */}

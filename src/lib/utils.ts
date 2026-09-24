@@ -1,3 +1,10 @@
+// Label opsi jawaban (mendukung hingga 6 opsi: A–F).
+export const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"];
+
+export function optionLabel(index: number): string {
+  return OPTION_LABELS[index] ?? String.fromCharCode(65 + index);
+}
+
 export function generateSessionCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let code = "";

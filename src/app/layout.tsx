@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ISFO Drill — Latihan Cerdas Cermat Keuangan Syariah",
+  title: "DrillKu — Latihan Soal Cerdas Cermat Semua Bidang",
   description:
-    "Aplikasi latihan soal cerdas cermat keuangan syariah dengan simulasi tekanan waktu",
+    "Aplikasi latihan soal (KSR, OSN, sains, informatika, cybersecurity, dll) dengan soal buatan AI dan simulasi tekanan waktu",
 };
 
 export const viewport: Viewport = {
