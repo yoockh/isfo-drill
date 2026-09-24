@@ -1,15 +1,22 @@
 import { Timestamp } from "firebase/firestore";
+import type { SubjectId, LevelId } from "./subjects";
 
 export interface Question {
   id: string;
   text: string;
-  options: [string, string, string, string];
+  // 2–6 opsi jawaban. (Dulu selalu tepat 4; kini fleksibel agar mendukung
+  // impor soal dengan 5 opsi A–E atau soal benar/salah.)
+  options: string[];
   correctIndex: number;
 }
 
 export interface Session {
   code: string;
   title: string;
+  // Konfigurasi generator AI (opsional demi kompatibilitas sesi lama).
+  subject?: SubjectId;
+  level?: LevelId;
+  customInstruction?: string;
   rawMaterial: string;
   questions: Question[];
   timerSeconds: number;
@@ -37,6 +44,6 @@ export interface Attempt {
 
 export interface GeneratedQuestion {
   text: string;
-  options: [string, string, string, string];
+  options: string[];
   correctIndex: number;
 }

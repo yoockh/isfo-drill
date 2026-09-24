@@ -1,24 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyFirebaseIdToken } from "@/lib/firebase/verifyToken";
-import { generateQuestions } from "@/lib/groq";
+import { parseQuestions } from "@/lib/groq";
 import { checkRateLimit } from "@/lib/ratelimit";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
-// Batas input materi & soal (Groq context window luas, batching otomatis untuk > 30 soal)
+// Materi impor bisa panjang (daftar puluhan soal); dipotong otomatis di groq.ts.
 const MAX_MATERIAL_CHARS = 60000;
-const MAX_QUESTIONS = 60;
-// Penggunaan wajar: guru tidak generate soal berkali-kali dalam semenit.
 const RATE_LIMIT_PER_MIN = 5;
 
 export async function POST(request: NextRequest) {
   try {
-    // 1) Autentikasi wajib: hanya guru yang login boleh memanggil endpoint ini.
+    // 1) Autentikasi wajib.
     const authHeader = request.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     const idToken = authHeader.split("Bearer ")[1];
     let uid: string;
     try {
@@ -31,51 +28,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2) Rate limiting per guru (per uid).
-    const rl = await checkRateLimit(`gen:${uid}`, RATE_LIMIT_PER_MIN);
+    // 2) Rate limit per guru.
+    const rl = await checkRateLimit(`import:${uid}`, RATE_LIMIT_PER_MIN);
     if (!rl.allowed) {
       return NextResponse.json(
         {
-          error: `Terlalu banyak permintaan generate. Coba lagi dalam ${rl.retryAfterSec} detik.`,
+          error: `Terlalu banyak permintaan impor. Coba lagi dalam ${rl.retryAfterSec} detik.`,
         },
         { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
       );
     }
 
     // 3) Validasi input.
-    const { material, count, subject, level, customInstruction } =
-      await request.json();
-
+    const { material } = await request.json();
     if (!material || typeof material !== "string" || material.trim().length < 10) {
       return NextResponse.json(
-        { error: "Materi terlalu pendek (minimal 10 karakter)" },
+        { error: "Teks soal terlalu pendek (minimal 10 karakter)" },
         { status: 400 }
       );
     }
     if (material.length > MAX_MATERIAL_CHARS) {
       return NextResponse.json(
-        {
-          error: `Materi terlalu panjang (maksimal ${MAX_MATERIAL_CHARS} karakter).`,
-        },
+        { error: `Teks terlalu panjang (maksimal ${MAX_MATERIAL_CHARS} karakter).` },
         { status: 400 }
       );
     }
 
-    const questionCount = Math.min(Math.max(Number(count) || 10, 1), MAX_QUESTIONS);
-    const questions = await generateQuestions(material.trim(), questionCount, {
-      subject: typeof subject === "string" ? (subject as never) : undefined,
-      level: typeof level === "string" ? (level as never) : undefined,
-      customInstruction:
-        typeof customInstruction === "string"
-          ? customInstruction.slice(0, 1000)
-          : undefined,
-    });
+    const questions = await parseQuestions(material);
+    if (questions.length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Tidak ada soal pilihan ganda yang terdeteksi. Pastikan teks berisi soal beserta opsi jawabannya.",
+        },
+        { status: 422 }
+      );
+    }
 
     return NextResponse.json({ questions });
   } catch (error: unknown) {
-    console.error("Generate questions error:", error);
+    console.error("Import questions error:", error);
     return NextResponse.json(
-      { error: "Gagal generate soal. Coba lagi." },
+      { error: "Gagal mengimpor soal. Coba lagi." },
       { status: 500 }
     );
   }

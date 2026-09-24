@@ -64,9 +64,9 @@ export default function HomePage() {
           <div className="inline-block mb-4 rotate-[-4deg] shadow-[5px_5px_0_0_#1a1a1a] rounded-[7px]">
             <Logo size={64} />
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight">ISFO DRILL</h1>
+          <h1 className="text-4xl font-extrabold tracking-tight">DRILLKU</h1>
           <p className="font-bold text-[#1a1a1a]/70 mt-1">
-            Latihan Cerdas Cermat Keuangan Syariah
+            Latihan Soal Cerdas Cermat — Semua Bidang
           </p>
         </div>
 
